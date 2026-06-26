@@ -1,11 +1,13 @@
-# ===== توکن بات =====
-TOKEN = "8847252091:AAGv53jgAQf7vcdjbemg7rbYw9-LLUy1zss"
+import os
 
-# ===== دیتابیس =====
-DATABASE_URL = "postgresql:///postgres"
+# ===== توکن بات (از محیط) =====
+TOKEN = os.environ.get("TOKEN")
 
-# ===== ادمین =====
-ADMIN_ID = 5596656149
+# ===== دیتابیس (از محیط) =====
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql:///postgres")
+
+# ===== ادمین (از محیط) =====
+ADMIN_ID = int(os.environ.get("ADMIN_ID", 5596656149))
 
 # ===== تنظیمات اسم =====
 MIN_NAME_LENGTH = 2
@@ -14,7 +16,7 @@ MAX_NAME_LENGTH = 20
 # ===== نسبت فروش =====
 SELL_PRICE_RATIO = 0.5
 
-# ===== کلاس‌ها با استت‌های جدید (×۱۰) =====
+# ===== کلاس‌ها =====
 CLASSES = {
     "warrior": {
         "name": "شوالیه",
@@ -64,7 +66,7 @@ CLASSES = {
     }
 }
 
-# ===== آیتم‌های اولیه برای هر کلاس =====
+# ===== آیتم‌های اولیه =====
 INITIAL_ITEMS = {
     "warrior": {
         "weapons": [("شمشیر آهنی", 1)],
@@ -141,9 +143,7 @@ ITEM_STATS = {
     }
 }
 
-
-
-# ===== آیتم‌های شاپ (با مقادیر ×۱۰) =====
+# ===== آیتم‌های شاپ =====
 SHOP_ITEMS = {
     "sword": [
         {"name": "شمشیر چوبی", "price": 1000, "atk_bonus": 30, "req_atk": 5, "desc": "شمشیر ابتدایی برای تمرین"},
@@ -201,13 +201,15 @@ SHOP_ITEMS = {
     ]
 }
 
-
-
-
-
-
-
-
+# ===== دسته‌بندی‌ها =====
+CATEGORIES = {
+    "sword": {"emoji": "⚔️", "name": "شمشیرها", "desc": "تعادل بین قدرت و سرعت، همه‌کاره"},
+    "katana": {"emoji": "🗡️", "name": "کاتاناها", "desc": "سریع و مرگبار، نیاز به چابکی دارن"},
+    "dagger": {"emoji": "🔪", "name": "خنجرها", "desc": "ضعیف‌ترین اما سریع‌ترین، برای ضربات پنهانی"},
+    "axe": {"emoji": "🪓", "name": "تبرها", "desc": "سنگین و قدرتمند، کند اما کشنده"},
+    "armor": {"emoji": "🛡️", "name": "زره‌ها", "desc": "محافظت از جان در برابر حملات"},
+    "consumable": {"emoji": "🧪", "name": "آیتم‌ها", "desc": "موارد مصرفی برای کمک در ماجراجویی"},
+}
 
 # ===== بونوس‌های سلاح‌ها =====
 WEAPON_BONUSES = {
@@ -220,8 +222,8 @@ WEAPON_BONUSES = {
             "شمشیر برنزی": 0.20,
             "شمشیر آهنی": 0.30,
             "شمشیر فولادی": 0.40,
-            "شمشیر الماسی": 0.50,
-            "شمشیر افسانه‌ای": 0.65,
+            "شمشیر الماسی": 0.48,
+            "شمشیر افسانه‌ای": 0.60,
         }
     },
     "katana": {
@@ -243,40 +245,25 @@ WEAPON_BONUSES = {
         "type": "critical",
         "chances": {
             "خنجر چوبی": 0.20,
-            "خنجر برنزی": 0.25,
-            "خنجر آهنی": 0.30,
-            "خنجر فولادی": 0.35,
-            "خنجر زهرآلود": 0.40,
-            "خنجر خونین": 0.45,
+            "خنجر برنزی": 0.30,
+            "خنجر آهنی": 0.40,
+            "خنجر فولادی": 0.45,
+            "خنجر زهرآلود": 0.50,
+            "خنجر خونین": 0.55,
         },
         "lifesteal": {
-            "خنجر خونین": 0.35
+            "خنجر خونین": 0.30
         }
     },
     "axe": {
         "name": "نادیده گرفتن دفاع",
         "emoji": "🪓",
         "type": "armor_pierce",
-        "chance": 0.50,
+        "chance": 0.80,
     }
 }
 
-
-
-
-
-
-# ===== دسته‌بندی‌ها با توضیحات =====
-CATEGORIES = {
-    "sword": {"emoji": "⚔️", "name": "شمشیرها", "desc": "تعادل بین قدرت و سرعت، همه‌کاره"},
-    "katana": {"emoji": "🗡️", "name": "کاتاناها", "desc": "سریع و مرگبار، نیاز به چابکی دارن"},
-    "dagger": {"emoji": "🔪", "name": "خنجرها", "desc": "ضعیف‌ترین اما سریع‌ترین، برای ضربات پنهانی"},
-    "axe": {"emoji": "🪓", "name": "تبرها", "desc": "سنگین و قدرتمند، کند اما کشنده"},
-    "armor": {"emoji": "🛡️", "name": "زره‌ها", "desc": "محافظت از جان در برابر حملات"},
-    "consumable": {"emoji": "🧪", "name": "آیتم‌ها", "desc": "موارد مصرفی برای کمک در ماجراجویی"},
-}
-
-# ===== تنظیمات دانجن (جون و اتک ×۱۰) =====
+# ===== تنظیمات دانجن =====
 DUNGEONS = {
     "goblin": {
         "name": "دانجن گابلین‌ها",
@@ -285,12 +272,12 @@ DUNGEONS = {
         "level_required": 0,
         "stages": 3,
         "enemy_hp": 500,
-        "enemy_atk": 199,
-        "enemy_def": 5,
-        "base_cooldown": 5,
+        "enemy_atk": 250,
+        "enemy_def": 10,
+        "base_cooldown": 640,
         "base_reward_gold": 1000,
         "base_reward_upgrade": 3,
-        "base_reward_exp": 300,
+        "base_reward_exp": 250,
         "drop_items": [
             {"name": "شمشیر مسی", "chance": 0.30, "type": "weapon"},
             {"name": "پوشن جون لول ۱", "chance": 0.20, "type": "consumable"},
@@ -304,17 +291,16 @@ DUNGEONS = {
         "level_required": 8,
         "stages": 4,
         "enemy_hp": 700,
-        "enemy_atk": 400,
-        "enemy_def": 10,
-        "base_cooldown": 5,
+        "enemy_atk": 480,
+        "enemy_def": 25,
+        "base_cooldown": 940,
         "base_reward_gold": 2000,
         "base_reward_upgrade": 6,
-        "base_reward_exp": 600,
+        "base_reward_exp": 500,
         "drop_items": [
             {"name": "شمشیر آهنی", "chance": 0.25, "type": "weapon"},
-            {"name": "زره الماسی", "chance": 0.09, "type": "armor"},
+            {"name": "زره الماسی", "chance": 0.01, "type": "armor"},
             {"name": "پوشن جون لول ۲", "chance": 0.15, "type": "consumable"}
         ]
     }
 }
-
