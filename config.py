@@ -1,5 +1,5 @@
 # ===== توکن بات =====
-TOKEN = "8997021672:AAG_U864cuKDWVA0tK7O6yoNpY2VS_zragE"
+TOKEN = "8847252091:AAGv53jgAQf7vcdjbemg7rbYw9-LLUy1zss"
 
 # ===== دیتابیس =====
 DATABASE_URL = "postgresql:///postgres"
