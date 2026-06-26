@@ -45,7 +45,7 @@ async def post_init(application):
     print("✅ دیتابیس آماده است!")
 
 # ========================================
-# هندلر اصلی پیام‌های متنی
+# هندلر اصلی پیام‌های متنی (غیر کامند)
 # ========================================
 async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """مدیریت پیام‌های متنی که کامند نیستند"""
@@ -56,112 +56,19 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     text = update.message.text.strip()
     
     # ==========================================
-    # کلمه کلیدی (درود بر لورد) - اول از همه
+    # 1. کلمه کلیدی (در همه جا کار میکنه)
     # ==========================================
     await handle_keyword(update, context)
     
     # ==========================================
-    # خرید تعداد مشخص (شاپ)
+    # 2. خرید تعداد مشخص (شاپ) - فقط پیوی
     # ==========================================
     if context.user_data.get('buy_item_name'):
         await shop_execute_quantity_buy(update, context)
         return
     
     # ==========================================
-    # کامندهای ادمین (با ریپلای)
-    # ==========================================
-    if text.startswith("/addgold"):
-        await admin_add_gold(update, context)
-        return
-    
-    if text.startswith("/removegold"):
-        await admin_remove_gold(update, context)
-        return
-    
-    if text.startswith("/reset"):
-        await admin_reset_player(update, context)
-        return
-    
-    if text.startswith("/addexp"):
-        await admin_add_exp(update, context)
-        return
-    
-    if text.startswith("/removeexp"):
-        await admin_remove_exp(update, context)
-        return
-    
-    if text.startswith("/addupgrade"):
-        await admin_add_upgrade(update, context)
-        return
-    
-    if text.startswith("/removeupgrade"):
-        await admin_remove_upgrade(update, context)
-        return
-    
-    if text == "/admin":
-        await admin_panel(update, context)
-        return
-    
-    if text.startswith("/resetquests"):
-        await admin_reset_quests(update, context)
-        return
-    
-    if text.startswith("/resetallquests"):
-        await admin_reset_all_quests(update, context)
-        return
-    
-    # ==========================================
-    # دوئل (با مبلغ)
-    # ==========================================
-    if text.startswith("/duel"):
-        await duel(update, context)
-        return
-    
-    if text.startswith("دوئل"):
-        await duel(update, context)
-        return
-    
-    # ==========================================
-    # کامندهای فارسی
-    # ==========================================
-    if text == "شروع":
-        await start(update, context)
-        return
-    
-    if text == "وضعیت":
-        await status_persian(update, context)
-        return
-    
-    if text == "اموال":
-        await inventory(update, context)
-        return
-    
-    if text == "شاپ":
-        await shop(update, context)
-        return
-    
-    if text == "دانجن":
-        await dungeon(update, context)
-        return
-    
-    if text == "آپگرید":
-        await upgrade(update, context)
-        return
-    
-    if text == "لیدربرد" or text == "رنکینگ":
-        await leaderboard(update, context)
-        return
-    
-    if text == "ماموریت" or text == "روزانه":
-        await daily(update, context)
-        return
-    
-    if text == "/help" or text == "آموزش" or text == "راهنما":
-        await help_command(update, context)
-        return
-    
-    # ==========================================
-    # مرحله وارد کردن اسم (ثبت‌نام)
+    # 3. مرحله وارد کردن اسم (ثبت‌نام) - فقط پیوی
     # ==========================================
     if context.user_data.get('awaiting_name'):
         if update.effective_chat.type == "private":
@@ -173,7 +80,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     
     # ==========================================
-    # لغو عملیات
+    # 4. لغو عملیات (همه جا)
     # ==========================================
     if text == "/cancel":
         if context.user_data.get('buy_item_name'):
@@ -182,7 +89,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     
     # ==========================================
-    # پیام‌های نامعتبر (فقط در چت خصوصی)
+    # 5. پیام‌های نامعتبر (فقط در چت خصوصی)
     # ==========================================
     if update.effective_chat.type == "private":
         await update.message.reply_text(
@@ -195,12 +102,13 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             "/dungeon یا 'دانجن' → ورود به دانجن\n"
             "/upgrade یا 'آپگرید' → آپگرید استت‌ها\n"
             "/leaderboard یا 'لیدربرد' → جدول رتبه‌بندی\n"
-            "/duel یا 'دوئل 500' → دوئل با کاربران گروه\n"
+            "/duel یا 'دوئل' → دوئل با کاربران گروه\n"
             "/daily یا 'ماموریت' → ماموریت‌های روزانه\n"
             "/help یا 'آموزش' → راهنمای بات\n"
             "/admin → پنل ادمین (فقط ادمین)",
             parse_mode="Markdown"
         )
+    # ===== در گروه، پیام‌های معمولی رو نادیده بگیر =====
 
 # ========================================
 # تابع اصلی
@@ -209,7 +117,7 @@ def main():
     app = Application.builder().token(TOKEN).post_init(post_init).build()
     
     # ==========================================
-    # کامندهای عمومی
+    # کامندهای انگلیسی (همه جا کار میکنن)
     # ==========================================
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("status", status))
@@ -223,7 +131,24 @@ def main():
     app.add_handler(CommandHandler("help", help_command))
     
     # ==========================================
-    # کامندهای ادمین
+    # کامندهای فارسی (همه جا کار میکنن)
+    # ==========================================
+    app.add_handler(CommandHandler("شروع", start))
+    app.add_handler(CommandHandler("وضعیت", status_persian))
+    app.add_handler(CommandHandler("اموال", inventory))
+    app.add_handler(CommandHandler("شاپ", shop))
+    app.add_handler(CommandHandler("دانجن", dungeon))
+    app.add_handler(CommandHandler("آپگرید", upgrade))
+    app.add_handler(CommandHandler("لیدربرد", leaderboard))
+    app.add_handler(CommandHandler("رنکینگ", leaderboard))
+    app.add_handler(CommandHandler("دوئل", duel))
+    app.add_handler(CommandHandler("ماموریت", daily))
+    app.add_handler(CommandHandler("روزانه", daily))
+    app.add_handler(CommandHandler("آموزش", help_command))
+    app.add_handler(CommandHandler("راهنما", help_command))
+    
+    # ==========================================
+    # کامندهای ادمین (انگلیسی)
     # ==========================================
     app.add_handler(CommandHandler("admin", admin_panel))
     app.add_handler(CommandHandler("addgold", admin_add_gold))
@@ -237,7 +162,19 @@ def main():
     app.add_handler(CommandHandler("resetallquests", admin_reset_all_quests))
     
     # ==========================================
-    # هندلر پیام‌های متنی (بدون /)
+    # کامندهای ادمین (فارسی)
+    # ==========================================
+    app.add_handler(CommandHandler("ادمین", admin_panel))
+    app.add_handler(CommandHandler("اضافه_سکه", admin_add_gold))
+    app.add_handler(CommandHandler("کم_سکه", admin_remove_gold))
+    app.add_handler(CommandHandler("ریست", admin_reset_player))
+    app.add_handler(CommandHandler("اضافه_اکسپی", admin_add_exp))
+    app.add_handler(CommandHandler("کم_اکسپی", admin_remove_exp))
+    app.add_handler(CommandHandler("اضافه_آپگرید", admin_add_upgrade))
+    app.add_handler(CommandHandler("کم_آپگرید", admin_remove_upgrade))
+    
+    # ==========================================
+    # هندلر پیام‌های متنی (غیر کامند)
     # ==========================================
     app.add_handler(
         MessageHandler(
@@ -257,7 +194,7 @@ def main():
     print("=" * 50)
     print("⚔️ بات قرون وسطایی با تمام قابلیت‌ها روشن شد! 🏰")
     print("=" * 50)
-    print("📌 کامندهای عمومی:")
+    print("📌 کامندهای عمومی (انگلیسی و فارسی):")
     print("   /start یا 'شروع' → شروع بازی")
     print("   /status یا 'وضعیت' → مشاهده وضعیت")
     print("   /inventory یا 'اموال' → مشاهده اینونتوری")
@@ -265,22 +202,22 @@ def main():
     print("   /dungeon یا 'دانجن' → ورود به دانجن")
     print("   /upgrade یا 'آپگرید' → آپگرید استت‌ها")
     print("   /leaderboard یا 'لیدربرد' → جدول رتبه‌بندی")
-    print("   /duel یا 'دوئل 500' → دوئل با کاربران گروه")
+    print("   /duel یا 'دوئل' → دوئل با کاربران گروه")
     print("   /daily یا 'ماموریت' → ماموریت‌های روزانه")
     print("   /help یا 'آموزش' → راهنمای بات")
     print("   'درود بر لورد' → جایزه ۱۰۰-۱۵۰ سکه (هر ۳ دقیقه)")
     print("")
-    print("👑 کامندهای ادمین (با ریپلای به پیام کاربر):")
-    print("   /admin → راهنمای پنل ادمین")
-    print("   /addgold 1000 → اضافه کردن سکه")
-    print("   /removegold 500 → کم کردن سکه")
-    print("   /addexp 100 → اضافه کردن اکس‌پی")
-    print("   /removeexp 50 → کم کردن اکس‌پی")
-    print("   /addupgrade 5 → اضافه کردن آپگرید پوینت")
-    print("   /removeupgrade 3 → کم کردن آپگرید پوینت")
-    print("   /resetquests → ریست کوئست‌های یه کاربر (ریپلای)")
+    print("👑 کامندهای ادمین (با ریپلای):")
+    print("   /admin یا 'ادمین' → راهنمای پنل ادمین")
+    print("   /addgold یا 'اضافه_سکه' → اضافه کردن سکه")
+    print("   /removegold یا 'کم_سکه' → کم کردن سکه")
+    print("   /addexp یا 'اضافه_اکسپی' → اضافه کردن اکس‌پی")
+    print("   /removeexp یا 'کم_اکسپی' → کم کردن اکس‌پی")
+    print("   /addupgrade یا 'اضافه_آپگرید' → اضافه کردن آپگرید پوینت")
+    print("   /removeupgrade یا 'کم_آپگرید' → کم کردن آپگرید پوینت")
+    print("   /resetquests → ریست کوئست‌های یه کاربر")
     print("   /resetallquests → ریست همه کوئست‌ها")
-    print("   /reset → ریست کامل کاربر")
+    print("   /reset یا 'ریست' → ریست کامل کاربر")
     print("=" * 50)
     
     app.run_polling()
