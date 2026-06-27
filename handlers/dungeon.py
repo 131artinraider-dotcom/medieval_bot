@@ -11,10 +11,11 @@ from database import (
     add_item_to_inventory, update_user_hp, use_consumable,
     check_respawn, add_exp, check_active_dungeon,
     apply_weapon_bonus, set_bleed, get_bleed, clear_bleed,
-    update_quest_progress  # ← اضافه کن
+    update_quest_progress
 )
 from models import Player, Item
 from config import DUNGEONS, ITEM_STATS
+from handlers.callbacks import check_ownership, set_panel_owner, clear_panel_owner
 
 def create_bar(current, max_val, length=15):
     if max_val <= 0:
@@ -25,50 +26,12 @@ def create_bar(current, max_val, length=15):
     empty = length - filled
     return "█" * filled + "░" * empty
 
-async def check_ownership(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-    query = update.callback_query
-    user_id = query.from_user.id
-    chat_id = update.effective_chat.id
-    key = f"panel_owner_{chat_id}"
-    
-    if context.chat_data.get(key) and context.chat_data[key] != user_id:
-        await query.answer("❌ این پنل متعلق به شما نیست!", show_alert=True)
-        return False
-    return True
-
-async def set_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
-    chat_id = update.effective_chat.id
-    key = f"panel_owner_{chat_id}"
-    context.chat_data[key] = user_id
-
-async def clear_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    key = f"panel_owner_{chat_id}"
-    context.chat_data.pop(key, None)
-
-# ===== قفل دانجن (با user_data) =====
-def is_dungeon_locked(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
-    return context.user_data.get(f"dungeon_lock_{user_id}", False)
-
-def lock_dungeon(context: ContextTypes.DEFAULT_TYPE, user_id: int):
-    context.user_data[f"dungeon_lock_{user_id}"] = True
-
-def unlock_dungeon(context: ContextTypes.DEFAULT_TYPE, user_id: int):
-    context.user_data.pop(f"dungeon_lock_{user_id}", None)
-
-# ===== پنل اصلی دانجن‌ها =====
+# ==========================================
+# پنل اصلی دانجن‌ها
+# ==========================================
 async def dungeon(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """نمایش پنل اصلی دانجن‌ها"""
     user_id = update.effective_user.id
-    
-    if is_dungeon_locked(context, user_id):
-        await update.message.reply_text(
-            "⚠️ **شما در حال حاضر یک پنل دانجن باز دارید!**\n"
-            "لطفاً ابتدا پنل قبلی رو ببندید یا ماموریت رو به اتمام برسونید.",
-            parse_mode="Markdown"
-        )
-        return
     
     await check_respawn(user_id)
     
@@ -142,8 +105,11 @@ async def dungeon(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
-# ===== پنل شروع دانجن =====
+# ==========================================
+# پنل شروع دانجن
+# ==========================================
 async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE, dungeon_type: str):
+    """نمایش اطلاعات دانجن قبل از شروع"""
     query = update.callback_query
     await query.answer()
     
@@ -153,14 +119,6 @@ async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     user_id = query.from_user.id
     
-    if is_dungeon_locked(context, user_id):
-        await query.edit_message_text(
-            "⚠️ **شما در حال حاضر یک پنل دانجن باز دارید!**\n"
-            "لطفاً ابتدا پنل قبلی رو ببندید.",
-            parse_mode="Markdown"
-        )
-        return
-    
     if await check_active_dungeon(user_id):
         await query.edit_message_text(
             "⚠️ **شما در حال حاضر یک دانجن فعال دارید!**\n"
@@ -169,20 +127,16 @@ async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return
     
-    lock_dungeon(context, user_id)
-    
     user_row = await get_user(user_id)
     player = Player.from_db_row(user_row)
     
     if not player or not player.is_registered:
         await query.edit_message_text("❌ شما ثبت‌نام نکردید!")
-        unlock_dungeon(context, user_id)
         return
     
     dungeon_data = DUNGEONS.get(dungeon_type)
     if not dungeon_data:
         await query.edit_message_text("❌ دانجن نامعتبر!")
-        unlock_dungeon(context, user_id)
         return
     
     equipped = await get_equipped(user_id)
@@ -241,8 +195,11 @@ async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
-# ===== شروع نبرد =====
+# ==========================================
+# شروع نبرد
+# ==========================================
 async def dungeon_battle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """شروع نبرد در دانجن"""
     query = update.callback_query
     await query.answer()
     
@@ -251,14 +208,6 @@ async def dungeon_battle_start(update: Update, context: ContextTypes.DEFAULT_TYP
     await set_panel_owner(update, context)
     
     user_id = query.from_user.id
-    
-    if not is_dungeon_locked(context, user_id):
-        await query.edit_message_text(
-            "⚠️ **پنل دانجن باز نیست!**\n"
-            "لطفاً دوباره از کامند /dungeon استفاده کن.",
-            parse_mode="Markdown"
-        )
-        return
     
     dungeon_type = query.data.replace("dungeon_battle_start_", "")
     
@@ -282,8 +231,11 @@ async def dungeon_battle_start(update: Update, context: ContextTypes.DEFAULT_TYP
     
     await dungeon_battle_round(update, context, dungeon_type)
 
-# ===== یک راند نبرد =====
+# ==========================================
+# یک راند نبرد
+# ==========================================
 async def dungeon_battle_round(update: Update, context: ContextTypes.DEFAULT_TYPE, dungeon_type: str):
+    """نمایش یک راند نبرد"""
     query = update.callback_query
     if query:
         await query.answer()
@@ -336,14 +288,14 @@ async def dungeon_battle_round(update: Update, context: ContextTypes.DEFAULT_TYP
     
     if current_hp <= 0:
         await player_died(user_id)
-        unlock_dungeon(context, user_id)
-        await query.edit_message_text(
-            f"💀 **تو در نبرد با {dungeon_data['name']} به شهادت رسیدی!**\n\n"
-            f"⏱️ تا ۱ ساعت دیگه ری‌اسپان میشی.\n"
-            f"بعد از ری‌اسپان، جون تو نصف میشه.\n\n"
-            f"از کامند /status برای مشاهده زمان باقی‌مونده استفاده کن.",
-            parse_mode="Markdown"
-        )
+        if query:
+            await query.edit_message_text(
+                f"💀 **تو در نبرد با {dungeon_data['name']} به شهادت رسیدی!**\n\n"
+                f"⏱️ تا ۱ ساعت دیگه ری‌اسپان میشی.\n"
+                f"بعد از ری‌اسپان، جون تو نصف میشه.\n\n"
+                f"از کامند /status برای مشاهده زمان باقی‌مونده استفاده کن.",
+                parse_mode="Markdown"
+            )
         return
     
     msg = (
@@ -369,8 +321,11 @@ async def dungeon_battle_round(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
-# ===== حمله پلیر (با سیستم بونوس کامل و خونریزی انباشته) =====
+# ==========================================
+# حمله پلیر
+# ==========================================
 async def dungeon_attack(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """اجرای حمله پلیر با سیستم بونوس کامل"""
     query = update.callback_query
     await query.answer()
     
@@ -485,7 +440,6 @@ async def dungeon_attack(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if current_hp <= 0:
         await player_died(user_id)
-        unlock_dungeon(context, user_id)
         await query.edit_message_text(
             f"💀 **تو در نبرد با {dungeon_data['name']} به شهادت رسیدی!**\n\n"
             f"⏱️ تا ۱ ساعت دیگه ری‌اسپان میشی.\n"
@@ -521,9 +475,11 @@ async def dungeon_attack(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("⚔️ ادامه", callback_data=f"dungeon_continue_{dungeon_type}", style="primary")]]
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
-
-# ===== پیروزی مرحله =====
+# ==========================================
+# پیروزی مرحله
+# ==========================================
 async def dungeon_stage_win(update: Update, context: ContextTypes.DEFAULT_TYPE, dungeon_type: str):
+    """پیروزی در یک مرحله از دانجن"""
     query = update.callback_query
     await query.answer()
     
@@ -581,11 +537,11 @@ async def dungeon_stage_win(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     keyboard = [[InlineKeyboardButton("⚔️ مرحله بعد", callback_data=f"dungeon_next_stage_{dungeon_type}", style="success")]]
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
-
-
-
-# ===== پیروزی نهایی =====
+# ==========================================
+# پیروزی نهایی
+# ==========================================
 async def dungeon_final_win(update: Update, context: ContextTypes.DEFAULT_TYPE, dungeon_type: str):
+    """پیروزی نهایی در دانجن و دریافت پاداش"""
     query = update.callback_query
     await query.answer()
     
@@ -618,7 +574,6 @@ async def dungeon_final_win(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     
     result = await add_exp(user_id, base_exp)
     
-    unlock_dungeon(context, user_id)
     await clear_panel_owner(update, context)
     await end_dungeon(user_id)
     
@@ -638,8 +593,11 @@ async def dungeon_final_win(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     
     await query.edit_message_text(msg, parse_mode="Markdown")
 
-# ===== ادامه نبرد =====
+# ==========================================
+# ادامه نبرد
+# ==========================================
 async def dungeon_continue(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ادامه نبرد بعد از حمله"""
     query = update.callback_query
     await query.answer()
     
@@ -650,8 +608,11 @@ async def dungeon_continue(update: Update, context: ContextTypes.DEFAULT_TYPE):
     dungeon_type = query.data.replace("dungeon_continue_", "")
     await dungeon_battle_round(update, context, dungeon_type)
 
-# ===== مرحله بعد =====
+# ==========================================
+# مرحله بعد
+# ==========================================
 async def dungeon_next_stage(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """رفتن به مرحله بعد از دانجن"""
     query = update.callback_query
     await query.answer()
     
@@ -662,8 +623,11 @@ async def dungeon_next_stage(update: Update, context: ContextTypes.DEFAULT_TYPE)
     dungeon_type = query.data.replace("dungeon_next_stage_", "")
     await dungeon_battle_round(update, context, dungeon_type)
 
-# ===== فرار =====
+# ==========================================
+# فرار از دانجن
+# ==========================================
 async def dungeon_flee(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """فرار از دانجن"""
     query = update.callback_query
     await query.answer()
     
@@ -675,7 +639,6 @@ async def dungeon_flee(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await end_dungeon(user_id)
     await clear_bleed(user_id)
-    unlock_dungeon(context, user_id)
     await clear_panel_owner(update, context)
     
     await query.edit_message_text(
@@ -684,8 +647,11 @@ async def dungeon_flee(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-# ===== استفاده از پوشن =====
+# ==========================================
+# منوی پوشن
+# ==========================================
 async def dungeon_potion_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """نمایش منوی پوشن‌ها برای استفاده در نبرد"""
     query = update.callback_query
     await query.answer()
     
@@ -739,8 +705,11 @@ async def dungeon_potion_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
-# ===== استفاده از پوشن در نبرد =====
+# ==========================================
+# استفاده از پوشن در نبرد
+# ==========================================
 async def dungeon_use_potion(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """استفاده از پوشن در نبرد"""
     query = update.callback_query
     await query.answer()
     
@@ -800,8 +769,11 @@ async def dungeon_use_potion(update: Update, context: ContextTypes.DEFAULT_TYPE)
         parse_mode="Markdown"
     )
 
-# ===== برگشت به نبرد =====
+# ==========================================
+# برگشت به نبرد
+# ==========================================
 async def dungeon_back_to_battle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """برگشت به صفحه نبرد"""
     query = update.callback_query
     await query.answer()
     
@@ -819,8 +791,11 @@ async def dungeon_back_to_battle(update: Update, context: ContextTypes.DEFAULT_T
     dungeon_type = dungeon['dungeon_type']
     await dungeon_battle_round(update, context, dungeon_type)
 
-# ===== برگشت به پنل اصلی =====
+# ==========================================
+# برگشت به پنل اصلی
+# ==========================================
 async def dungeon_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """برگشت به پنل اصلی دانجن‌ها"""
     query = update.callback_query
     await query.answer()
     
@@ -829,7 +804,6 @@ async def dungeon_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     user_id = query.from_user.id
     
-    unlock_dungeon(context, user_id)
     await clear_panel_owner(update, context)
     
     user_row = await get_user(user_id)
@@ -896,8 +870,11 @@ async def dungeon_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
-# ===== بستن پنل =====
+# ==========================================
+# بستن پنل دانجن
+# ==========================================
 async def dungeon_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """بستن پنل دانجن"""
     query = update.callback_query
     await query.answer()
     
@@ -906,16 +883,19 @@ async def dungeon_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     user_id = query.from_user.id
     
-    unlock_dungeon(context, user_id)
     await clear_panel_owner(update, context)
     await query.delete_message()
 
-# ===== دکمه‌های قفل شده =====
+# ==========================================
+# دکمه‌های قفل شده
+# ==========================================
 async def dungeon_locked(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """پیام برای دانجن قفل شده"""
     query = update.callback_query
     await query.answer("⛔ این ماموریت در حال حاضر در دسترس نیست!", show_alert=True)
 
 async def dungeon_level_locked(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """پیام برای دانجن قفل شده به خاطر لول"""
     query = update.callback_query
     await query.answer("🔒 لول شما برای این ماموریت کافی نیست!", show_alert=True)
 

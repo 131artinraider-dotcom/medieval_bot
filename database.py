@@ -2,6 +2,7 @@ import asyncpg
 from datetime import datetime, timedelta
 from config import DATABASE_URL, SHOP_ITEMS, DUNGEONS
 from models import Item
+import random
 
 # ========================================
 # 1. CONNECTION
@@ -131,6 +132,25 @@ async def init_db():
             created_at TIMESTAMP DEFAULT NOW(),
             UNIQUE(user_id)
         )
+    """)
+    
+    # ===== جدول duel_requests =====
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS duel_requests (
+            id SERIAL PRIMARY KEY,
+            chat_id BIGINT NOT NULL,
+            creator_id BIGINT NOT NULL,
+            creator_name VARCHAR(50),
+            amount INTEGER NOT NULL,
+            accepted BOOLEAN DEFAULT FALSE,
+            winner_id BIGINT DEFAULT NULL,
+            message_id INTEGER DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_duel_requests_chat_id ON duel_requests(chat_id)
     """)
     
     # ===== پر کردن shop_items =====
@@ -777,7 +797,7 @@ async def player_died(user_id: int):
     if half_hp < 1:
         half_hp = 1
     
-    respawn_time = datetime.now() + timedelta(seconds=2)
+    respawn_time = datetime.now() + timedelta(seconds=3600)
     
     await conn.execute(
         "UPDATE users SET respawn_until = $1, hp = $2 WHERE user_id = $3",
@@ -1291,7 +1311,6 @@ async def apply_weapon_bonus(user_id: int, damage: int, enemy_hp: int, enemy_def
             else:
                 bleed_damage = 50
             
-            from database import get_bleed
             current_bleed = await get_bleed(user_id)
             new_bleed = current_bleed + bleed_damage
             result['extra_effects']['bleed'] = new_bleed
@@ -1308,9 +1327,6 @@ async def apply_weapon_bonus(user_id: int, damage: int, enemy_hp: int, enemy_def
 # ========================================
 # 12. DAILY QUEST FUNCTIONS
 # ========================================
-import random
-from datetime import datetime, timedelta
-
 QUEST_TYPES = {
     "kill_goblin": {
         "name": "گابلین بکش",
@@ -1607,14 +1623,13 @@ async def create_duel(chat_id: int, creator_id: int, creator_name: str, amount: 
     """ایجاد دوئل جدید در دیتابیس"""
     conn = await get_db()
     
-    # حذف دوئل‌های قبلی در این چت
     await conn.execute(
-        "DELETE FROM active_duels WHERE chat_id = $1 AND accepted = FALSE",
+        "DELETE FROM duel_requests WHERE chat_id = $1 AND accepted = FALSE",
         chat_id
     )
     
     await conn.execute("""
-        INSERT INTO active_duels (chat_id, creator_id, creator_name, amount, message_id)
+        INSERT INTO duel_requests (chat_id, creator_id, creator_name, amount, message_id)
         VALUES ($1, $2, $3, $4, $5)
     """, chat_id, creator_id, creator_name, amount, message_id)
     
@@ -1624,39 +1639,39 @@ async def get_active_duel(chat_id: int):
     """دریافت دوئل فعال در یک چت"""
     conn = await get_db()
     duel = await conn.fetchrow(
-        "SELECT * FROM active_duels WHERE chat_id = $1 AND accepted = FALSE ORDER BY created_at DESC LIMIT 1",
+        "SELECT * FROM duel_requests WHERE chat_id = $1 AND accepted = FALSE ORDER BY created_at DESC LIMIT 1",
         chat_id
     )
     await conn.close()
     return duel
 
-async def accept_duel(chat_id: int, user_id: int):
+async def accept_duel(chat_id: int, winner_id: int):
     """قبول کردن دوئل"""
     conn = await get_db()
     
-    duel = await conn.fetchrow(
-        "SELECT * FROM active_duels WHERE chat_id = $1 AND accepted = FALSE ORDER BY created_at DESC LIMIT 1",
-        chat_id
-    )
-    
-    if not duel:
-        await conn.close()
-        return None
-    
     await conn.execute(
-        "UPDATE active_duels SET accepted = TRUE, winner_id = $1 WHERE id = $2",
-        user_id, duel['id']
+        "UPDATE duel_requests SET accepted = TRUE, winner_id = $1 WHERE chat_id = $2 AND accepted = FALSE",
+        winner_id, chat_id
     )
     
     await conn.close()
-    return duel
 
 async def delete_duel(chat_id: int):
     """حذف دوئل از دیتابیس"""
     conn = await get_db()
     await conn.execute(
-        "DELETE FROM active_duels WHERE chat_id = $1",
+        "DELETE FROM duel_requests WHERE chat_id = $1",
         chat_id
     )
     await conn.close()
+
+async def get_duel_creator(chat_id: int):
+    """دریافت سازنده دوئل"""
+    conn = await get_db()
+    creator = await conn.fetchval(
+        "SELECT creator_id FROM duel_requests WHERE chat_id = $1 AND accepted = FALSE",
+        chat_id
+    )
+    await conn.close()
+    return creator
 

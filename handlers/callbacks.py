@@ -31,34 +31,56 @@ from handlers.daily import daily_claim, daily_claim_all, daily_back, daily_close
 from handlers.help import help_close
 
 # ========================================
-# توابع قفل پنل
+# توابع قفل پنل (اصلاح شده - هر کاربر کلید مخصوص خودش)
 # ========================================
+
 async def check_ownership(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """
+    بررسی مالکیت پنل - هر کاربر فقط پنل خودش رو میتونه کنترل کنه
+    برگردوندن False یعنی کاربر اجازه نداره و پیام خطا داده میشه
+    """
     query = update.callback_query
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
-    key = f"panel_owner_{chat_id}"
     
-    if context.chat_data.get(key) and context.chat_data[key] != user_id:
-        await query.answer("❌ این پنل متعلق به شما نیست!", show_alert=True)
+    # کلید منحصر‌به‌فرد برای هر کاربر در هر چت
+    key = f"panel_owner_{chat_id}_{user_id}"
+    
+    # چک میکنیم که آیا این کاربر پنل باز داره یا نه
+    if key not in context.chat_data:
+        await query.answer("❌ پنل شما بسته شده! لطفاً دوباره باز کن.", show_alert=True)
         return False
+    
     return True
 
 async def set_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ثبت مالکیت پنل برای کاربر - پنل قبلی رو پاک میکنه"""
     query = update.callback_query
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
-    key = f"panel_owner_{chat_id}"
+    
+    # کلید منحصر‌به‌فرد برای هر کاربر
+    key = f"panel_owner_{chat_id}_{user_id}"
+    
+    # پاک کردن پنل قبلی این کاربر (اگه وجود داشته باشه)
+    context.chat_data.pop(key, None)
+    
+    # ثبت پنل جدید
     context.chat_data[key] = user_id
 
 async def clear_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """پاک کردن مالکیت پنل کاربر"""
+    query = update.callback_query
+    user_id = query.from_user.id
     chat_id = update.effective_chat.id
-    key = f"panel_owner_{chat_id}"
+    
+    key = f"panel_owner_{chat_id}_{user_id}"
     context.chat_data.pop(key, None)
 
 # ========================================
 # کالبک اصلی
 # ========================================
+
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """مدیریت همه کلیک‌های دکمه"""
     query = update.callback_query
@@ -67,14 +89,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"🔍 کالبک دریافت شد: {data}")
     
     # ==========================================
-    # 1. انتخاب کلاس (ثبت‌نام)
+    # 1. انتخاب کلاس (ثبت‌نام) - بدون قفل
     # ==========================================
     if data.startswith("class_") or data == "cancel_registration":
         await select_class_callback(update, context)
         return
     
     # ==========================================
-    # 2. دکمه‌های قفل شده دانجن
+    # 2. دکمه‌های قفل شده دانجن - بدون قفل
     # ==========================================
     if data == "dungeon_level_locked":
         await query.answer("🔒 لول شما برای این ماموریت کافی نیست!", show_alert=True)
@@ -85,7 +107,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 3. دوئل و دکمه تست (بدون قفل)
+    # 3. دکمه‌های دوئل - بدون قفل
     # ==========================================
     if data == "duel_accept":
         print("🚨 دکمه قبول دوئل در callbacks شناسایی شد!")
@@ -104,7 +126,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 4. چک کردن مالکیت برای بقیه
+    # 4. چک کردن مالکیت برای بقیه دکمه‌ها
     # ==========================================
     if not await check_ownership(update, context):
         return
