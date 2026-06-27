@@ -31,8 +31,7 @@ from handlers.leaderboard import (
 from handlers.duel import duel_accept, duel_close
 from handlers.daily import daily_claim, daily_claim_all, daily_back, daily_close
 from handlers.help import help_close
-from handlers.panel_utils import check_panel_ownership, set_panel_owner, clear_panel_owner
-
+from handlers.panel_utils import check_panel_ownership, clear_panel_owner
 
 # ========================================
 # کالبک اصلی
