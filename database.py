@@ -1572,11 +1572,20 @@ async def reset_daily_quests():
 
 async def get_quest_time_remaining():
     now = datetime.now()
-    next_reset = now.replace(hour=((now.hour // 6) + 1) * 6, minute=0, second=0, microsecond=0)
-    if next_reset == now:
-        next_reset = now + timedelta(hours=6)
+    current_block = (now.hour // 6) * 6
+    next_hour = current_block + 6
+    if next_hour >= 24:
+        # فردا ساعت ۰۰:۰۰
+        next_reset = (now + timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+    else:
+        next_reset = now.replace(
+            hour=next_hour, minute=0, second=0, microsecond=0
+        )
     remaining = (next_reset - now).total_seconds()
     return max(0, int(remaining))
+
 
 # ========================================
 # 13. KEYWORD REWARD FUNCTIONS
