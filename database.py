@@ -1562,8 +1562,9 @@ async def claim_all_quests(user_id: int):
     }
 
 async def reset_daily_quests():
+    """ریست کوئست‌های قدیمی‌تر از ۱ ساعت"""
     conn = await get_db()
-    cutoff_time = datetime.now() - timedelta(hours=6)
+    cutoff_time = datetime.now() - timedelta(hours=1)
     await conn.execute(
         "DELETE FROM daily_quests WHERE quest_date < $1 AND quest_completed = FALSE",
         cutoff_time
@@ -1571,18 +1572,9 @@ async def reset_daily_quests():
     await conn.close()
 
 async def get_quest_time_remaining():
+    """زمان تا ریست بعدی (هر ساعت یک بار)"""
     now = datetime.now()
-    current_block = (now.hour // 6) * 6
-    next_hour = current_block + 6
-    if next_hour >= 24:
-        # فردا ساعت ۰۰:۰۰
-        next_reset = (now + timedelta(days=1)).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-    else:
-        next_reset = now.replace(
-            hour=next_hour, minute=0, second=0, microsecond=0
-        )
+    next_reset = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     remaining = (next_reset - now).total_seconds()
     return max(0, int(remaining))
 

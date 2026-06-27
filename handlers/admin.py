@@ -525,3 +525,60 @@ async def admin_reset_all_quests(update: Update, context: ContextTypes.DEFAULT_T
         parse_mode="Markdown"
     )
 
+
+# ===== تغییر اسم پلیر =====
+async def admin_rename_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تغییر اسم پلیر (فقط ادمین) - ریپلای + اسم جدید"""
+    user_id = update.effective_user.id
+
+    if not await is_admin(user_id):
+        await update.message.reply_text("❌ شما دسترسی ادمین ندارید!")
+        return
+
+    if not update.message.reply_to_message:
+        await update.message.reply_text(
+            "❌ به پیام کاربر ریپلای کن!\n"
+            "مثال: /rename اسم_جدید (ریپلای)"
+        )
+        return
+
+    parts = update.message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        await update.message.reply_text("❌ اسم جدید رو وارد کن! مثال: /rename شوالیه_آهنین")
+        return
+
+    new_name = parts[1].strip()
+    if len(new_name) < 2 or len(new_name) > 20:
+        await update.message.reply_text("❌ اسم باید ۲ تا ۲۰ کاراکتر باشه!")
+        return
+
+    target_user = update.message.reply_to_message.from_user
+    conn = await get_db()
+
+    # چک وجود کاربر
+    exists = await conn.fetchval("SELECT user_id FROM users WHERE user_id = $1", target_user.id)
+    if not exists:
+        await conn.close()
+        await update.message.reply_text(f"❌ کاربر {target_user.first_name} در دیتابیس نیست!")
+        return
+
+    # چک تکراری بودن اسم
+    name_taken = await conn.fetchval(
+        "SELECT user_id FROM users WHERE character_name = $1 AND user_id != $2",
+        new_name, target_user.id
+    )
+    if name_taken:
+        await conn.close()
+        await update.message.reply_text(f"❌ اسم «{new_name}» قبلاً گرفته شده!")
+        return
+
+    old_name = await conn.fetchval("SELECT character_name FROM users WHERE user_id = $1", target_user.id)
+    await conn.execute("UPDATE users SET character_name = $1 WHERE user_id = $2", new_name, target_user.id)
+    await conn.close()
+
+    await update.message.reply_text(
+        f"✅ اسم پلیر تغییر کرد!\n\n"
+        f"👤 قبلی: **{old_name}**\n"
+        f"✏️ جدید: **{new_name}**",
+        parse_mode="Markdown"
+    )

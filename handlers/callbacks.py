@@ -326,7 +326,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("lb_type_"):
         mode = data.replace("lb_type_", "")
         context.user_data['lb_mode'] = mode
-        await query.answer(f"🌍 حالت: {mode}")
+        stat_type = context.user_data.get('lb_stat', 'gold')
+        await show_leaderboard(update, context, stat_type, mode, 0)
         return
 
     if data.startswith("lb_page_"):

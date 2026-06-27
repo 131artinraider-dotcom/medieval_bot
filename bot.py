@@ -19,217 +19,136 @@ from handlers.help import help_command
 from handlers.keyword import handle_keyword
 from handlers.pay import pay
 from handlers.admin import (
-    admin_panel,
-    admin_add_gold,
-    admin_remove_gold,
-    admin_reset_player,
-    admin_add_exp,
-    admin_remove_exp,
-    admin_add_upgrade,
-    admin_remove_upgrade,
-    admin_reset_quests,
-    admin_reset_all_quests
+    admin_panel, admin_add_gold, admin_remove_gold, admin_reset_player,
+    admin_add_exp, admin_remove_exp, admin_add_upgrade, admin_remove_upgrade,
+    admin_reset_quests, admin_reset_all_quests, admin_rename_player
 )
 
 # ========================================
-# تنظیمات لاگ
+# تنظیمات لاگ - فقط WARNING و بالاتر
 # ========================================
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.WARNING
 )
+# httpx رو کاملاً ساکت کن
+logging.getLogger("httpx").setLevel(logging.ERROR)
+logging.getLogger("telegram").setLevel(logging.WARNING)
+logging.getLogger("apscheduler").setLevel(logging.WARNING)
 
-# ========================================
-# مقداردهی اولیه دیتابیس
-# ========================================
 async def post_init(application):
     await init_db()
     print("✅ دیتابیس آماده است!")
 
 # ========================================
+# پاک‌سازی پنل‌های منقضی (هر ۱۰ دقیقه)
+# ========================================
+async def cleanup_expired_panels(context: ContextTypes.DEFAULT_TYPE):
+    """پاک کردن پنل‌های بیش از ۱۰ دقیقه از bot_data"""
+    import time
+    now = time.time()
+    expired = [
+        k for k, v in list(context.bot_data.items())
+        if k.startswith("panel_") and isinstance(v, dict) and now - v.get("ts", now) > 600
+    ]
+    for k in expired:
+        context.bot_data.pop(k, None)
+
+# ========================================
 # هندلر اصلی پیام‌های متنی
 # ========================================
 async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """مدیریت همه پیام‌های متنی (کامندهای انگلیسی و فارسی)"""
-    
     if not update.message:
         return
-    
     text = update.message.text.strip()
-    
-    # ==========================================
-    # 1. کامندهای ادمین (با ریپلای)
-    # ==========================================
+
     if text.startswith("/addgold"):
-        await admin_add_gold(update, context)
-        return
-    
+        await admin_add_gold(update, context); return
     if text.startswith("/removegold"):
-        await admin_remove_gold(update, context)
-        return
-    
-    if text.startswith("/reset"):
-        await admin_reset_player(update, context)
-        return
-    
-    if text.startswith("/addexp"):
-        await admin_add_exp(update, context)
-        return
-    
-    if text.startswith("/removeexp"):
-        await admin_remove_exp(update, context)
-        return
-    
-    if text.startswith("/addupgrade"):
-        await admin_add_upgrade(update, context)
-        return
-    
-    if text.startswith("/removeupgrade"):
-        await admin_remove_upgrade(update, context)
-        return
-    
-    if text == "/admin":
-        await admin_panel(update, context)
-        return
-    
-    if text.startswith("/resetquests"):
-        await admin_reset_quests(update, context)
-        return
-    
+        await admin_remove_gold(update, context); return
     if text.startswith("/resetallquests"):
-        await admin_reset_all_quests(update, context)
-        return
-    
-    # ==========================================
-    # 2. کامندهای انگلیسی (با /)
-    # ==========================================
+        await admin_reset_all_quests(update, context); return
+    if text.startswith("/resetquests"):
+        await admin_reset_quests(update, context); return
+    if text.startswith("/reset"):
+        await admin_reset_player(update, context); return
+    if text.startswith("/addexp"):
+        await admin_add_exp(update, context); return
+    if text.startswith("/removeexp"):
+        await admin_remove_exp(update, context); return
+    if text.startswith("/addupgrade"):
+        await admin_add_upgrade(update, context); return
+    if text.startswith("/removeupgrade"):
+        await admin_remove_upgrade(update, context); return
+    if text.startswith("/rename"):
+        await admin_rename_player(update, context); return
+    if text == "/admin":
+        await admin_panel(update, context); return
+
     if text.startswith("/start"):
-        await start(update, context)
-        return
-    
+        await start(update, context); return
     if text.startswith("/status"):
-        await status(update, context)
-        return
-    
+        await status(update, context); return
     if text.startswith("/inventory"):
-        await inventory(update, context)
-        return
-    
+        await inventory(update, context); return
     if text.startswith("/shop"):
-        await shop(update, context)
-        return
-    
+        await shop(update, context); return
     if text.startswith("/dungeon"):
-        await dungeon(update, context)
-        return
-    
+        await dungeon(update, context); return
     if text.startswith("/upgrade"):
-        await upgrade(update, context)
-        return
-    
+        await upgrade(update, context); return
     if text.startswith("/leaderboard"):
-        await leaderboard(update, context)
-        return
-    
+        await leaderboard(update, context); return
     if text.startswith("/duel"):
-        await duel(update, context)
-        return
-    
+        await duel(update, context); return
     if text.startswith("/daily"):
-        await daily(update, context)
-        return
-    
+        await daily(update, context); return
     if text.startswith("/pay"):
-        await pay(update, context)
-        return
-    
+        await pay(update, context); return
     if text.startswith("/help"):
-        await help_command(update, context)
-        return
-    
-    # ==========================================
-    # 3. کامندهای فارسی (بدون /)
-    # ==========================================
+        await help_command(update, context); return
+
     if text == "شروع":
-        await start(update, context)
-        return
-    
+        await start(update, context); return
     if text == "وضعیت":
-        await status_persian(update, context)
-        return
-    
+        await status_persian(update, context); return
     if text == "اموال":
-        await inventory(update, context)
-        return
-    
+        await inventory(update, context); return
     if text == "شاپ":
-        await shop(update, context)
-        return
-    
+        await shop(update, context); return
     if text == "دانجن":
-        await dungeon(update, context)
-        return
-    
+        await dungeon(update, context); return
     if text == "آپگرید":
-        await upgrade(update, context)
-        return
-    
-    if text == "لیدربرد" or text == "رنکینگ":
-        await leaderboard(update, context)
-        return
-    
+        await upgrade(update, context); return
+    if text in ["لیدربرد", "رنکینگ"]:
+        await leaderboard(update, context); return
     if text.startswith("دوئل"):
-        await duel(update, context)
-        return
-    
-    if text == "ماموریت" or text == "روزانه":
-        await daily(update, context)
-        return
-    
+        await duel(update, context); return
+    if text in ["ماموریت", "روزانه"]:
+        await daily(update, context); return
     if text.startswith("انتقال"):
-        await pay(update, context)
-        return
-    
-    if text == "آموزش" or text == "راهنما":
-        await help_command(update, context)
-        return
-    
-    # ==========================================
-    # 4. کلمه کلیدی (درود بر لورد)
-    # ==========================================
-    await handle_keyword(update, context)
-    
-    # ==========================================
-    # 5. خرید تعداد مشخص (شاپ) - فقط پیوی
-    # ==========================================
+        await pay(update, context); return
+    if text in ["آموزش", "راهنما"]:
+        await help_command(update, context); return
+
     if context.user_data.get('buy_item_name'):
-        await shop_execute_quantity_buy(update, context)
-        return
-    
-    # ==========================================
-    # 6. مرحله وارد کردن اسم (ثبت‌نام) - فقط پیوی
-    # ==========================================
+        await shop_execute_quantity_buy(update, context); return
+
     if context.user_data.get('awaiting_name'):
         if update.effective_chat.type == "private":
             await handle_name(update, context)
         else:
-            await update.message.reply_text(
-                "❌ لطفاً ثبت‌نام رو در چت خصوصی بات کامل کن."
-            )
+            await update.message.reply_text("❌ لطفاً ثبت‌نام رو در چت خصوصی بات کامل کن.")
         return
-    
-    # ==========================================
-    # 7. لغو عملیات
-    # ==========================================
+
     if text == "/cancel":
         if context.user_data.get('buy_item_name'):
             context.user_data.pop('buy_item_name', None)
             await update.message.reply_text("✅ عملیات خرید لغو شد.")
         return
-    
-    # ==========================================
-    # 8. پیام‌های نامعتبر (فقط در چت خصوصی)
-    # ==========================================
+
+    await handle_keyword(update, context)
+
     if update.effective_chat.type == "private":
         await update.message.reply_text(
             "❌ دستور نامعتبر!\n\n"
@@ -243,7 +162,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             "/leaderboard یا 'لیدربرد' → جدول رتبه‌بندی\n"
             "/duel یا 'دوئل' → دوئل با کاربران گروه\n"
             "/daily یا 'ماموریت' → ماموریت‌های روزانه\n"
-            "/pay یا 'انتقال' → انتقال پول به کاربر (ریپلای)\n"
+            "/pay یا 'انتقال' → انتقال پول\n"
             "/help یا 'آموزش' → راهنمای بات\n"
             "/admin → پنل ادمین (فقط ادمین)",
             parse_mode="Markdown"
@@ -253,82 +172,31 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
 # هندلر خطاها
 # ========================================
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
-    """هندل کردن خطاها - جلوگیری از crash بات"""
     error = context.error
-
-    # TimedOut و NetworkError رو نادیده بگیر - موقتی هستن
     if isinstance(error, (TimedOut, NetworkError)):
         return
-
-    # بقیه خطاها رو لاگ کن
     logging.error(f"خطا: {error}", exc_info=context.error)
-
-    # اگه از callback بود، به کاربر بگو
     if update and hasattr(update, 'callback_query') and update.callback_query:
         try:
-            await update.callback_query.answer(
-                "❌ خطایی پیش اومد! دوباره تلاش کن.",
-                show_alert=True
-            )
+            await update.callback_query.answer("❌ خطایی پیش اومد! دوباره تلاش کن.", show_alert=True)
         except Exception:
             pass
-
 
 # ========================================
 # تابع اصلی
 # ========================================
 def main():
     app = Application.builder().token(TOKEN).post_init(post_init).build()
-    
-    # ==========================================
-    # هندلر پیام‌های متنی (همه پیام‌ها)
-    # ==========================================
-    app.add_handler(
-        MessageHandler(
-            filters.TEXT,
-            handle_text_messages
-        )
-    )
-    
-    # ==========================================
-    # هندلر دکمه‌ها (کالبک)
-    # ==========================================
-    app.add_handler(CallbackQueryHandler(button_callback))
 
-    # ==========================================
-    # هندلر خطاها
-    # ==========================================
+    app.add_handler(MessageHandler(filters.TEXT, handle_text_messages))
+    app.add_handler(CallbackQueryHandler(button_callback))
     app.add_error_handler(error_handler)
-    
-    # ==========================================
-    # راه‌اندازی
-    # ==========================================
-    print("=" * 50)
-    print("⚔️ بات قرون وسطایی با تمام قابلیت‌ها روشن شد! 🏰")
-    print("=" * 50)
-    print("📌 کامندهای انگلیسی (با /):")
-    print("   /start, /status, /inventory, /shop, /dungeon")
-    print("   /upgrade, /leaderboard, /duel, /daily, /pay, /help")
-    print("")
-    print("📌 کامندهای فارسی (بدون /):")
-    print("   شروع, وضعیت, اموال, شاپ, دانجن")
-    print("   آپگرید, لیدربرد, رنکینگ, دوئل, ماموریت")
-    print("   روزانه, انتقال, آموزش, راهنما")
-    print("")
-    print("📌 کلمه کلیدی:")
-    print("   'درود بر لورد' → جایزه ۱۰۰-۱۵۰ سکه (هر ۳ دقیقه)")
-    print("")
-    print("👑 کامندهای ادمین (با ریپلای):")
-    print("   /admin → راهنما")
-    print("   /addgold, /removegold → مدیریت سکه")
-    print("   /addexp, /removeexp → مدیریت اکس‌پی")
-    print("   /addupgrade, /removeupgrade → مدیریت آپگرید")
-    print("   /resetquests, /resetallquests → مدیریت کوئست")
-    print("   /reset → ریست کامل کاربر")
-    print("=" * 50)
-    
+
+    # پاک‌سازی پنل‌های منقضی هر ۱۰ دقیقه
+    app.job_queue.run_repeating(cleanup_expired_panels, interval=600, first=600)
+
+    print("⚔️ بات قرون وسطایی روشن شد! 🏰")
     app.run_polling()
 
 if __name__ == "__main__":
     main()
-
