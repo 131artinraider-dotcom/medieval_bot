@@ -85,7 +85,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 3. دوئل (بدون قفل) - اول از همه
+    # 3. دوئل (بدون قفل)
     # ==========================================
     if data == "duel_accept":
         print("🔍 دکمه قبول دوئل کلیک شد!")
