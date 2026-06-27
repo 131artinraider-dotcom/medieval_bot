@@ -79,14 +79,14 @@ async def duel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """, chat_id, user_id, user_row['character_name'], amount, sent.message_id)
     await conn.close()
     
-    # ===== تایمر رو به صورت غیرهمزمان اجرا کن =====
+    # ===== تایمر =====
     asyncio.create_task(duel_timer(chat_id, user_id, amount, sent))
 
 # ========================================
 # تایمر دوئل
 # ========================================
 async def duel_timer(chat_id: int, user_id: int, amount: int, sent_msg):
-    """تایمر ۳۰ ثانیه‌ای که بات رو قفل نمیکنه"""
+    """تایمر ۳۰ ثانیه"""
     await asyncio.sleep(30)
     
     conn = await get_db()
@@ -115,14 +115,11 @@ async def duel_timer(chat_id: int, user_id: int, amount: int, sent_msg):
         await conn.close()
 
 # ========================================
-# قبول دوئل (با نمایش خطا بدون بستن پنل)
+# قبول دوئل
 # ========================================
 async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """قبول کردن دوئل"""
     query = update.callback_query
-    
-    # ===== اول جواب بده =====
-    await query.answer()
     
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
@@ -139,6 +136,7 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await conn.close()
         return
     
+    # ===== خطا: کاربر نمی‌تونه دوئل خودش رو قبول کنه =====
     if user_id == duel['creator_id']:
         await query.answer("❌ نمی‌تونی دوئل خودت رو قبول کنی!", show_alert=True)
         await conn.close()
@@ -152,12 +150,13 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await conn.close()
         return
     
+    # ===== خطا: سکه کافی نیست =====
     if user_row['gold'] < amount:
         await query.answer(f"❌ سکه کافی نیست! نیاز: {amount:,}", show_alert=True)
         await conn.close()
         return
     
-    # ===== ادامه پردازش (همه چیز اوکی) =====
+    # ===== همه چیز اوکی =====
     await query.answer("✅ دوئل قبول شد!")
     
     # کم کردن پول از قبول کننده
@@ -192,6 +191,7 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await conn.close()
     
+    # ===== نمایش نتیجه =====
     await query.edit_message_text(
         f"⚔️ **نتیجه دوئل!**\n\n"
         f"🎲 **{winner_row['character_name']}** دوئل رو برد!\n\n"
@@ -206,7 +206,6 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def duel_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بستن دوئل توسط سازنده"""
     query = update.callback_query
-    await query.answer()
     
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
@@ -223,6 +222,7 @@ async def duel_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await conn.close()
         return
     
+    # ===== خطا: فقط سازنده میتونه ببنده =====
     if user_id != duel['creator_id']:
         await query.answer("❌ فقط سازنده می‌تونه ببنده!", show_alert=True)
         await conn.close()
