@@ -2,8 +2,8 @@ import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 
-from config import TOKEN  # ← این خط رو جدا کن
-from database import init_db  # ← این خط رو جدا کن
+from config import TOKEN
+from database import init_db
 from handlers.start import start, handle_name
 from handlers.callbacks import button_callback
 from handlers.status import status, status_persian
@@ -56,7 +56,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     text = update.message.text.strip()
     
     # ==========================================
-    # 1. کامندهای ادمین (با ریپلای) - اول از همه
+    # 1. کامندهای ادمین (با ریپلای)
     # ==========================================
     if text.startswith("/addgold"):
         await admin_add_gold(update, context)
@@ -237,7 +237,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             "/admin → پنل ادمین (فقط ادمین)",
             parse_mode="Markdown"
         )
-    # ===== در گروه، پیام‌های معمولی رو نادیده بگیر =====
 
 # ========================================
 # تابع اصلی

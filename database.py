@@ -1,8 +1,7 @@
 import asyncpg
-import random
 from datetime import datetime, timedelta
 from config import DATABASE_URL, SHOP_ITEMS, DUNGEONS
-from models import Item  # ← این خط رو اضافه کن
+from models import Item
 
 # ========================================
 # 1. CONNECTION
@@ -13,6 +12,7 @@ async def get_db():
 async def init_db():
     conn = await get_db()
     
+    # ===== جدول users =====
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS users (
             user_id BIGINT PRIMARY KEY,
@@ -30,12 +30,19 @@ async def init_db():
             exp INTEGER DEFAULT 0,
             max_exp INTEGER DEFAULT 100,
             upgrade_points INTEGER DEFAULT 0,
+            hp_level INTEGER DEFAULT 1,
+            atk_level INTEGER DEFAULT 1,
+            def_level INTEGER DEFAULT 1,
+            spd_level INTEGER DEFAULT 1,
+            lck_level INTEGER DEFAULT 1,
+            total_upgrades INTEGER DEFAULT 0,
             is_registered BOOLEAN DEFAULT FALSE,
             respawn_until TIMESTAMP DEFAULT NULL,
             created_at TIMESTAMP DEFAULT NOW()
         )
     """)
     
+    # ===== جدول inventory =====
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS inventory (
             id SERIAL PRIMARY KEY,
@@ -48,6 +55,7 @@ async def init_db():
         )
     """)
     
+    # ===== جدول shop_items =====
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS shop_items (
             id SERIAL PRIMARY KEY,
@@ -69,6 +77,7 @@ async def init_db():
         )
     """)
     
+    # ===== جدول dungeons =====
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS dungeons (
             id SERIAL PRIMARY KEY,
@@ -79,14 +88,56 @@ async def init_db():
             enemy_hp INTEGER DEFAULT 0,
             is_active BOOLEAN DEFAULT FALSE,
             panel_open BOOLEAN DEFAULT FALSE,
+            bleed INTEGER DEFAULT 0,
             cooldown_until TIMESTAMP DEFAULT NOW(),
             created_at TIMESTAMP DEFAULT NOW()
         )
     """)
     
+    # ===== جدول group_members =====
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS group_members (
+            id SERIAL PRIMARY KEY,
+            user_id BIGINT NOT NULL,
+            chat_id BIGINT NOT NULL,
+            joined_at TIMESTAMP DEFAULT NOW(),
+            UNIQUE(user_id, chat_id)
+        )
+    """)
+    
+    # ===== جدول daily_quests =====
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS daily_quests (
+            id SERIAL PRIMARY KEY,
+            user_id BIGINT REFERENCES users(user_id) ON DELETE CASCADE,
+            quest_date TIMESTAMP DEFAULT NOW(),
+            quest_type VARCHAR(30) NOT NULL,
+            quest_target INTEGER NOT NULL,
+            quest_progress INTEGER DEFAULT 0,
+            quest_completed BOOLEAN DEFAULT FALSE,
+            quest_reward_gold INTEGER NOT NULL,
+            quest_reward_upgrade INTEGER NOT NULL,
+            quest_difficulty VARCHAR(20) DEFAULT 'normal',
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    
+    # ===== جدول keyword_rewards =====
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS keyword_rewards (
+            id SERIAL PRIMARY KEY,
+            user_id BIGINT REFERENCES users(user_id) ON DELETE CASCADE,
+            last_claim TIMESTAMP DEFAULT NOW(),
+            created_at TIMESTAMP DEFAULT NOW(),
+            UNIQUE(user_id)
+        )
+    """)
+    
+    # ===== پر کردن shop_items =====
     await init_shop_items(conn)
+    
     await conn.close()
-    print("✅ جدول‌های users, inventory, shop_items, dungeons بررسی/ساخته شدند")
+    print("✅ جدول‌ها بررسی/ساخته شدند")
 
 async def init_shop_items(conn):
     count = await conn.fetchval("SELECT COUNT(*) FROM shop_items")
@@ -678,6 +729,31 @@ async def check_active_dungeon(user_id: int) -> bool:
     await conn.close()
     return dungeon is not None
 
+async def set_bleed(user_id: int, amount: int):
+    conn = await get_db()
+    await conn.execute(
+        "UPDATE dungeons SET bleed = $1 WHERE user_id = $2 AND is_active = TRUE",
+        amount, user_id
+    )
+    await conn.close()
+
+async def get_bleed(user_id: int) -> int:
+    conn = await get_db()
+    bleed = await conn.fetchval(
+        "SELECT bleed FROM dungeons WHERE user_id = $1 AND is_active = TRUE",
+        user_id
+    )
+    await conn.close()
+    return bleed or 0
+
+async def clear_bleed(user_id: int):
+    conn = await get_db()
+    await conn.execute(
+        "UPDATE dungeons SET bleed = 0 WHERE user_id = $1 AND is_active = TRUE",
+        user_id
+    )
+    await conn.close()
+
 # ========================================
 # 6. RESPAWN FUNCTIONS
 # ========================================
@@ -701,7 +777,7 @@ async def player_died(user_id: int):
     if half_hp < 1:
         half_hp = 1
     
-    respawn_time = datetime.now() + timedelta(seconds=3600)
+    respawn_time = datetime.now() + timedelta(seconds=2)
     
     await conn.execute(
         "UPDATE users SET respawn_until = $1, hp = $2 WHERE user_id = $3",
@@ -773,13 +849,11 @@ async def get_respawn_time(user_id: int) -> int:
     return 0
 
 # ========================================
-# 7. PANEL OPEN FUNCTIONS (NEW)
+# 7. PANEL OPEN FUNCTIONS
 # ========================================
 async def open_dungeon_panel(user_id: int, dungeon_type: str):
-    """ثبت باز شدن پنل دانجن در دیتابیس"""
     conn = await get_db()
     
-    # پاک کردن پنل‌های قبلی
     await conn.execute(
         "DELETE FROM dungeons WHERE user_id = $1 AND is_active = FALSE AND panel_open = TRUE",
         user_id
@@ -804,7 +878,6 @@ async def open_dungeon_panel(user_id: int, dungeon_type: str):
     return True
 
 async def close_dungeon_panel(user_id: int):
-    """بستن پنل دانجن"""
     conn = await get_db()
     await conn.execute(
         "DELETE FROM dungeons WHERE user_id = $1 AND is_active = FALSE AND panel_open = TRUE",
@@ -813,7 +886,6 @@ async def close_dungeon_panel(user_id: int):
     await conn.close()
 
 async def has_open_panel(user_id: int) -> bool:
-    """چک کن که کاربر پنل دانجن باز داره یا نه"""
     conn = await get_db()
     result = await conn.fetchval(
         "SELECT id FROM dungeons WHERE user_id = $1 AND panel_open = TRUE",
@@ -862,48 +934,24 @@ async def add_exp(user_id: int, amount: int):
         "leveled_up": leveled_up
     }
 
-
-
 # ========================================
 # 9. UPGRADE FUNCTIONS
 # ========================================
-
 def get_upgrade_cost(total_upgrades: int) -> int:
-    """
-    محاسبه هزینه آپگرید بعدی بر اساس تعداد کل آپگریدها
-    """
-    # پایه هزینه = تعداد آپگریدها + 1
     if total_upgrades < 10:
-        return total_upgrades + 1  # 1, 2, 3, ..., 10
-    
+        return total_upgrades + 1
     elif total_upgrades < 20:
-        # از 10 تا 20: هر بار 2 تا اضافه میشه
-        # 10 → 12, 11 → 14, 12 → 16, ..., 19 → 30
-        return 10 + (total_upgrades - 9) * 2  # 12, 14, 16, ..., 30
-    
+        return 10 + (total_upgrades - 9) * 2
     elif total_upgrades < 30:
-        # از 20 تا 30: هر بار 4 تا اضافه میشه
-        # 20 → 34, 21 → 38, 22 → 42, ..., 29 → 66
-        return 30 + (total_upgrades - 19) * 4  # 34, 38, 42, ..., 66
-    
+        return 30 + (total_upgrades - 19) * 4
     elif total_upgrades < 40:
-        # از 30 تا 40: هر بار 6 تا اضافه میشه
-        # 30 → 72, 31 → 78, 32 → 84, ..., 39 → 126
-        return 66 + (total_upgrades - 29) * 6  # 72, 78, 84, ..., 126
-    
+        return 66 + (total_upgrades - 29) * 6
     elif total_upgrades < 50:
-        # از 40 تا 50: هر بار 7 تا اضافه میشه
-        # 40 → 133, 41 → 140, 42 → 147, ..., 49 → 196
-        return 126 + (total_upgrades - 39) * 7  # 133, 140, 147, ..., 196
-    
+        return 126 + (total_upgrades - 39) * 7
     else:
-        # 50 به بالا: هر بار 9 تا اضافه میشه
-        # 50 → 205, 51 → 214, 52 → 223, ...
-        return 196 + (total_upgrades - 49) * 9  # 205, 214, 223, ...
-
+        return 196 + (total_upgrades - 49) * 9
 
 async def get_user_upgrade_info(user_id: int):
-    """دریافت اطلاعات آپگرید کاربر"""
     conn = await get_db()
     user = await conn.fetchrow("""
         SELECT 
@@ -916,10 +964,8 @@ async def get_user_upgrade_info(user_id: int):
     return user
 
 async def apply_upgrade(user_id: int, stat_type: str):
-    """اعمال آپگرید روی یک استت"""
     conn = await get_db()
     
-    # دریافت اطلاعات کاربر
     user = await conn.fetchrow("""
         SELECT 
             upgrade_points, total_upgrades,
@@ -932,24 +978,21 @@ async def apply_upgrade(user_id: int, stat_type: str):
         await conn.close()
         return {"success": False, "message": "کاربر یافت نشد!"}
     
-    # محاسبه هزینه
     cost = get_upgrade_cost(user['total_upgrades'])
     
     if user['upgrade_points'] < cost:
         await conn.close()
         return {"success": False, "message": f"پوینت کافی نیست! نیاز: {cost}"}
     
-    # اعمال آپگرید بر اساس نوع استت
     new_value = 0
     new_level = 0
     new_max_hp = user['max_hp']
     new_hp = user['hp']
     
-    # ===== بخش hp در apply_upgrade =====
     if stat_type == "hp":
         new_level = user['hp_level'] + 1
-        new_max_hp = user['max_hp'] + 150  # ← تغییر از 15 به 150
-        new_hp = user['hp'] + 150          # ← تغییر از 15 به 150
+        new_max_hp = user['max_hp'] + 150
+        new_hp = user['hp'] + 150
         await conn.execute("""
             UPDATE users SET 
                 hp_level = $1, max_hp = $2, hp = $3,
@@ -958,9 +1001,6 @@ async def apply_upgrade(user_id: int, stat_type: str):
             WHERE user_id = $5
         """, new_level, new_max_hp, new_hp, cost, user_id)
         new_value = new_max_hp
-
-
-
         
     elif stat_type == "atk":
         new_level = user['atk_level'] + 1
@@ -1018,143 +1058,10 @@ async def apply_upgrade(user_id: int, stat_type: str):
         "new_max_hp": new_max_hp if stat_type == "hp" else user['max_hp']
     }
 
-
-
-
-
-# ========================================
-# 9.5. WEAPON BONUS FUNCTIONS
-# ========================================
-
-def get_weapon_category(item_name: str) -> str:
-    """دریافت دسته سلاح بر اساس اسم"""
-    from config import SHOP_ITEMS
-    for category, items in SHOP_ITEMS.items():
-        if category in ["sword", "katana", "dagger", "axe"]:
-            for item in items:
-                if item['name'] == item_name:
-                    return category
-    return None
-
-async def apply_weapon_bonus(user_id: int, damage: int, enemy_hp: int, enemy_def: int) -> dict:
-    """
-    اعمال بونوس سلاح روی دمیج
-    returns: {"damage": int, "message": str, "extra_effects": dict}
-    """
-    from config import WEAPON_BONUSES, ITEM_STATS
-    import random
-    
-    equipped = await get_equipped(user_id)
-    equipped_weapon = next((Item(**dict(item)) for item in equipped if item['item_type'] == 'weapon'), None)
-    
-    if not equipped_weapon:
-        return {"damage": damage, "message": "", "extra_effects": {}}
-    
-    weapon_name = equipped_weapon.item_name
-    category = get_weapon_category(weapon_name)
-    
-    if not category or category not in WEAPON_BONUSES:
-        return {"damage": damage, "message": "", "extra_effects": {}}
-    
-    bonus = WEAPON_BONUSES[category]
-    result = {"damage": damage, "message": "", "extra_effects": {}}
-    messages = []
-    
-    if bonus['type'] == "critical":  # خنجر - دمیج دو برابر
-        chance = bonus['chances'].get(weapon_name, 0.20)
-        if random.random() < chance:
-            result['damage'] = damage * 2
-            messages.append(f"💥 **دمیج دو برابر!** ({bonus['emoji']} {bonus['name']})")
-        
-        # خون‌آشامی برای خنجر خونین
-        lifesteal_chance = bonus.get('lifesteal', {}).get(weapon_name, 0)
-        if lifesteal_chance > 0 and random.random() < lifesteal_chance:
-            result['extra_effects']['lifesteal'] = int(damage * 0.15)
-            messages.append(f"🩸 **لایف استیل!** +{int(damage * 0.15)} جون")
-
-    elif bonus['type'] == "execute":  # کاتانا - نصف کردن جون
-        chance = bonus['chances'].get(weapon_name, 0)
-        if chance > 0 and random.random() < chance:
-            result['damage'] = enemy_hp // 2
-            messages.append(f"🗡️ **ضربه مرگبار!** نصف جون ({enemy_hp//2}) ({bonus['emoji']} {bonus['name']})")
-
-    elif bonus['type'] == "deep_wound":  # شمشیر - زخم عمیق
-        chance = bonus['chances'].get(weapon_name, 0)
-        if chance > 0 and random.random() < chance:
-            # خونریزی بر اساس سطح شمشیر
-            if "چوبی" in weapon_name:
-                bleed_damage = 20
-            elif "برنزی" in weapon_name:
-                bleed_damage = 40
-            elif "آهنی" in weapon_name:
-                bleed_damage = 60
-            elif "فولادی" in weapon_name:
-                bleed_damage = 80
-            elif "الماسی" in weapon_name:
-                bleed_damage = 100
-            elif "افسانه‌ای" in weapon_name:
-                bleed_damage = 150
-            else:
-                bleed_damage = 50
-            
-            # ===== دریافت خونریزی قبلی =====
-            from database import get_bleed
-            current_bleed = await get_bleed(user_id)
-            new_bleed = current_bleed + bleed_damage  # انباشته شدن
-            
-            result['extra_effects']['bleed'] = new_bleed
-            messages.append(f"🩸 **زخم عمیق!** خونریزی +{bleed_damage} (مجموع: {new_bleed}) ({bonus['emoji']} {bonus['name']})")
-
-    elif bonus['type'] == "armor_pierce":  # تبر - نادیده گرفتن دفاع
-        if random.random() < bonus['chance']:
-            result['damage'] = damage + enemy_def
-            messages.append(f"🛡️ **نادیده گرفتن دفاع!** (+{enemy_def} دمیج) ({bonus['emoji']} {bonus['name']})")
-    
-    result['message'] = " ".join(messages)
-    return result
-
-
-# ===== توابع خونریزی =====
-async def set_bleed(user_id: int, amount: int):
-    """ذخیره مقدار خونریزی برای کاربر"""
-    conn = await get_db()
-    await conn.execute(
-        "UPDATE dungeons SET bleed = $1 WHERE user_id = $2 AND is_active = TRUE",
-        amount, user_id
-    )
-    await conn.close()
-
-async def get_bleed(user_id: int) -> int:
-    """دریافت مقدار خونریزی کاربر"""
-    conn = await get_db()
-    bleed = await conn.fetchval(
-        "SELECT bleed FROM dungeons WHERE user_id = $1 AND is_active = TRUE",
-        user_id
-    )
-    await conn.close()
-    return bleed or 0
-
-async def clear_bleed(user_id: int):
-    """پاک کردن خونریزی کاربر"""
-    conn = await get_db()
-    await conn.execute(
-        "UPDATE dungeons SET bleed = 0 WHERE user_id = $1 AND is_active = TRUE",
-        user_id
-    )
-    await conn.close()
-
-
-
-
 # ========================================
 # 10. LEADERBOARD FUNCTIONS
 # ========================================
-
 async def get_leaderboard_global(stat_type: str, limit: int = 10, offset: int = 0):
-    """
-    دریافت لیدربرد گلوبال
-    stat_type: 'gold', 'level', 'power'
-    """
     conn = await get_db()
     
     if stat_type == "gold":
@@ -1190,10 +1097,6 @@ async def get_leaderboard_global(stat_type: str, limit: int = 10, offset: int = 
     return users
 
 async def get_leaderboard_group(chat_id: int, stat_type: str, limit: int = 10, offset: int = 0):
-    """
-    دریافت لیدربرد گروهی
-    stat_type: 'gold', 'level', 'power'
-    """
     conn = await get_db()
     
     if stat_type == "gold":
@@ -1232,7 +1135,6 @@ async def get_leaderboard_group(chat_id: int, stat_type: str, limit: int = 10, o
     return users
 
 async def get_user_global_rank(user_id: int, stat_type: str) -> int:
-    """دریافت رتبه گلوبال کاربر"""
     conn = await get_db()
     
     if stat_type == "gold":
@@ -1261,7 +1163,6 @@ async def get_user_global_rank(user_id: int, stat_type: str) -> int:
     return rank or 0
 
 async def get_user_group_rank(user_id: int, chat_id: int, stat_type: str) -> int:
-    """دریافت رتبه گروهی کاربر"""
     conn = await get_db()
     
     if stat_type == "gold":
@@ -1299,7 +1200,6 @@ async def get_user_group_rank(user_id: int, chat_id: int, stat_type: str) -> int
     return rank or 0
 
 async def add_group_member(user_id: int, chat_id: int):
-    """اضافه کردن کاربر به گروه برای لیدربرد گروهی"""
     conn = await get_db()
     await conn.execute(
         "INSERT INTO group_members (user_id, chat_id) VALUES ($1, $2) ON CONFLICT (user_id, chat_id) DO NOTHING",
@@ -1308,14 +1208,12 @@ async def add_group_member(user_id: int, chat_id: int):
     await conn.close()
 
 async def get_total_users_global() -> int:
-    """تعداد کل کاربران گلوبال"""
     conn = await get_db()
     total = await conn.fetchval("SELECT COUNT(*) FROM users WHERE is_registered = TRUE")
     await conn.close()
     return total or 0
 
 async def get_total_users_group(chat_id: int) -> int:
-    """تعداد کل کاربران گروه"""
     conn = await get_db()
     total = await conn.fetchval("""
         SELECT COUNT(*) 
@@ -1327,13 +1225,92 @@ async def get_total_users_group(chat_id: int) -> int:
     return total or 0
 
 # ========================================
-# 11. DAILY QUEST FUNCTIONS
+# 11. WEAPON BONUS FUNCTIONS
 # ========================================
+def get_weapon_category(item_name: str) -> str:
+    from config import SHOP_ITEMS
+    for category, items in SHOP_ITEMS.items():
+        if category in ["sword", "katana", "dagger", "axe"]:
+            for item in items:
+                if item['name'] == item_name:
+                    return category
+    return None
 
+async def apply_weapon_bonus(user_id: int, damage: int, enemy_hp: int, enemy_def: int) -> dict:
+    from config import WEAPON_BONUSES, ITEM_STATS
+    import random
+    
+    equipped = await get_equipped(user_id)
+    equipped_weapon = next((Item(**dict(item)) for item in equipped if item['item_type'] == 'weapon'), None)
+    
+    if not equipped_weapon:
+        return {"damage": damage, "message": "", "extra_effects": {}}
+    
+    weapon_name = equipped_weapon.item_name
+    category = get_weapon_category(weapon_name)
+    
+    if not category or category not in WEAPON_BONUSES:
+        return {"damage": damage, "message": "", "extra_effects": {}}
+    
+    bonus = WEAPON_BONUSES[category]
+    result = {"damage": damage, "message": "", "extra_effects": {}}
+    messages = []
+    
+    if bonus['type'] == "critical":
+        chance = bonus['chances'].get(weapon_name, 0.20)
+        if random.random() < chance:
+            result['damage'] = damage * 2
+            messages.append(f"💥 **دمیج دو برابر!** ({bonus['emoji']} {bonus['name']})")
+        
+        lifesteal_chance = bonus.get('lifesteal', {}).get(weapon_name, 0)
+        if lifesteal_chance > 0 and random.random() < lifesteal_chance:
+            result['extra_effects']['lifesteal'] = int(damage * 0.15)
+            messages.append(f"🩸 **لایف استیل!** +{int(damage * 0.15)} جون")
+
+    elif bonus['type'] == "execute":
+        chance = bonus['chances'].get(weapon_name, 0)
+        if chance > 0 and random.random() < chance:
+            result['damage'] = enemy_hp // 2
+            messages.append(f"🗡️ **ضربه مرگبار!** نصف جون ({enemy_hp//2}) ({bonus['emoji']} {bonus['name']})")
+
+    elif bonus['type'] == "deep_wound":
+        chance = bonus['chances'].get(weapon_name, 0)
+        if chance > 0 and random.random() < chance:
+            if "چوبی" in weapon_name:
+                bleed_damage = 20
+            elif "برنزی" in weapon_name:
+                bleed_damage = 40
+            elif "آهنی" in weapon_name:
+                bleed_damage = 60
+            elif "فولادی" in weapon_name:
+                bleed_damage = 80
+            elif "الماسی" in weapon_name:
+                bleed_damage = 100
+            elif "افسانه‌ای" in weapon_name:
+                bleed_damage = 150
+            else:
+                bleed_damage = 50
+            
+            from database import get_bleed
+            current_bleed = await get_bleed(user_id)
+            new_bleed = current_bleed + bleed_damage
+            result['extra_effects']['bleed'] = new_bleed
+            messages.append(f"🩸 **زخم عمیق!** خونریزی +{bleed_damage} (مجموع: {new_bleed}) ({bonus['emoji']} {bonus['name']})")
+
+    elif bonus['type'] == "armor_pierce":
+        if random.random() < bonus['chance']:
+            result['damage'] = damage + enemy_def
+            messages.append(f"🛡️ **نادیده گرفتن دفاع!** (+{enemy_def} دمیج) ({bonus['emoji']} {bonus['name']})")
+    
+    result['message'] = " ".join(messages)
+    return result
+
+# ========================================
+# 12. DAILY QUEST FUNCTIONS
+# ========================================
 import random
 from datetime import datetime, timedelta
 
-# ===== کوئست‌های قابل تولید =====
 QUEST_TYPES = {
     "kill_goblin": {
         "name": "گابلین بکش",
@@ -1379,16 +1356,13 @@ DIFFICULTY_NAMES = {
 }
 
 async def generate_daily_quests(user_id: int):
-    """تولید ۳ کوئست جدید برای کاربر"""
     conn = await get_db()
     
-    # حذف کوئست‌های قدیمی (فقط اگه کامل نشده باشن)
     await conn.execute(
         "DELETE FROM daily_quests WHERE user_id = $1 AND quest_completed = FALSE",
         user_id
     )
     
-    # انتخاب ۳ کوئست تصادفی
     quest_keys = list(QUEST_TYPES.keys())
     selected_quests = random.sample(quest_keys, 3)
     
@@ -1414,7 +1388,6 @@ async def generate_daily_quests(user_id: int):
     return True
 
 async def get_user_quests(user_id: int):
-    """دریافت کوئست‌های کاربر (شامل کامل شده‌ها)"""
     conn = await get_db()
     
     quests = await conn.fetch(
@@ -1422,7 +1395,6 @@ async def get_user_quests(user_id: int):
         user_id
     )
     
-    # اگه کوئست نداره، تولید کن
     if not quests:
         await conn.close()
         await generate_daily_quests(user_id)
@@ -1436,10 +1408,8 @@ async def get_user_quests(user_id: int):
     return quests
 
 async def update_quest_progress(user_id: int, quest_type: str, amount: int = 1):
-    """آپدیت پیشرفت کوئست"""
     conn = await get_db()
     
-    # کوئست فعال رو پیدا کن (کامل نشده)
     quest = await conn.fetchrow(
         "SELECT * FROM daily_quests WHERE user_id = $1 AND quest_type = $2 AND quest_completed = FALSE",
         user_id, quest_type
@@ -1467,7 +1437,6 @@ async def update_quest_progress(user_id: int, quest_type: str, amount: int = 1):
         return {"completed": False, "quest": quest}
 
 async def claim_quest_reward(user_id: int, quest_id: int):
-    """دریافت جایزه کوئست"""
     conn = await get_db()
     
     quest = await conn.fetchrow(
@@ -1479,13 +1448,11 @@ async def claim_quest_reward(user_id: int, quest_id: int):
         await conn.close()
         return {"success": False, "message": "این کوئست کامل نشده یا وجود ندارد!"}
     
-    # اضافه کردن جایزه
     await conn.execute(
         "UPDATE users SET gold = gold + $1, upgrade_points = upgrade_points + $2 WHERE user_id = $3",
         quest['quest_reward_gold'], quest['quest_reward_upgrade'], user_id
     )
     
-    # حذف کوئست فقط بعد از دریافت جایزه
     await conn.execute(
         "DELETE FROM daily_quests WHERE id = $1",
         quest_id
@@ -1500,7 +1467,6 @@ async def claim_quest_reward(user_id: int, quest_id: int):
     }
 
 async def claim_all_quests(user_id: int):
-    """دریافت جایزه همه کوئست‌های کامل شده"""
     conn = await get_db()
     
     quests = await conn.fetch(
@@ -1540,10 +1506,8 @@ async def claim_all_quests(user_id: int):
     }
 
 async def reset_daily_quests():
-    """ریست کوئست‌های قدیمی (هر ۶ ساعت)"""
     conn = await get_db()
     cutoff_time = datetime.now() - timedelta(hours=6)
-    # فقط کوئست‌های کامل نشده رو حذف کن
     await conn.execute(
         "DELETE FROM daily_quests WHERE quest_date < $1 AND quest_completed = FALSE",
         cutoff_time
@@ -1551,9 +1515,7 @@ async def reset_daily_quests():
     await conn.close()
 
 async def get_quest_time_remaining():
-    """زمان باقی‌مونده تا ریست بعدی (۶ ساعت)"""
     now = datetime.now()
-    # ریست در ساعت‌های ۰، ۶، ۱۲، ۱۸
     next_reset = now.replace(hour=((now.hour // 6) + 1) * 6, minute=0, second=0, microsecond=0)
     if next_reset == now:
         next_reset = now + timedelta(hours=6)
@@ -1561,11 +1523,9 @@ async def get_quest_time_remaining():
     return max(0, int(remaining))
 
 # ========================================
-# 12. KEYWORD REWARD FUNCTIONS
+# 13. KEYWORD REWARD FUNCTIONS
 # ========================================
-
 async def can_claim_keyword_reward(user_id: int) -> bool:
-    """چک کن کاربر میتونه جایزه کلمه کلیدی رو بگیره یا نه"""
     conn = await get_db()
     
     result = await conn.fetchval(
@@ -1577,16 +1537,13 @@ async def can_claim_keyword_reward(user_id: int) -> bool:
         await conn.close()
         return True
     
-    # ۳ دقیقه = ۱۸۰ ثانیه
     time_diff = (datetime.now() - result).total_seconds()
     await conn.close()
     return time_diff >= 180
 
 async def claim_keyword_reward(user_id: int) -> dict:
-    """اعطای جایزه کلمه کلیدی"""
     conn = await get_db()
     
-    # چک کن کاربر وجود داره
     user_exists = await conn.fetchval(
         "SELECT user_id FROM users WHERE user_id = $1",
         user_id
@@ -1596,29 +1553,23 @@ async def claim_keyword_reward(user_id: int) -> dict:
         await conn.close()
         return {"success": False, "message": "شما ثبت‌نام نکردید!"}
     
-    # چک کن کول‌داون
     can_claim = await can_claim_keyword_reward(user_id)
     if not can_claim:
         await conn.close()
         return {"success": False, "message": "⏱️ هنوز ۳ دقیقه نشده!"}
     
-    # محاسبه جایزه (۱۰۰ تا ۱۵۰ سکه)
-    import random
     reward = random.randint(100, 150)
     
-    # اضافه کردن سکه
     await conn.execute(
         "UPDATE users SET gold = gold + $1 WHERE user_id = $2",
         reward, user_id
     )
     
-    # ذخیره زمان آخرین کلیم
     await conn.execute(
         "INSERT INTO keyword_rewards (user_id, last_claim) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET last_claim = $2",
         user_id, datetime.now()
     )
     
-    # دریافت سکه جدید
     new_gold = await conn.fetchval(
         "SELECT gold FROM users WHERE user_id = $1",
         user_id
@@ -1632,7 +1583,6 @@ async def claim_keyword_reward(user_id: int) -> dict:
     }
 
 async def get_keyword_cooldown(user_id: int) -> int:
-    """دریافت زمان باقی‌مونده تا کلیم بعدی (به ثانیه)"""
     conn = await get_db()
     
     last_claim = await conn.fetchval(
@@ -1645,7 +1595,7 @@ async def get_keyword_cooldown(user_id: int) -> int:
         return 0
     
     time_diff = (datetime.now() - last_claim).total_seconds()
-    remaining = 180 - time_diff  # ۳ دقیقه
+    remaining = 180 - time_diff
     await conn.close()
     return max(0, int(remaining))
 
