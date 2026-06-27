@@ -2,8 +2,7 @@ import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 
-from config import TOKEN
-from database import init_db
+from config import TOKENfrom database import init_db
 from handlers.start import start, handle_name
 from handlers.callbacks import button_callback
 from handlers.status import status, status_persian
@@ -56,7 +55,50 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     text = update.message.text.strip()
     
     # ==========================================
-    # 1. کامندهای انگلیسی (با /)
+    # 1. کامندهای ادمین (با ریپلای) - اول از همه
+    # ==========================================
+    if text.startswith("/addgold"):
+        await admin_add_gold(update, context)
+        return
+    
+    if text.startswith("/removegold"):
+        await admin_remove_gold(update, context)
+        return
+    
+    if text.startswith("/reset"):
+        await admin_reset_player(update, context)
+        return
+    
+    if text.startswith("/addexp"):
+        await admin_add_exp(update, context)
+        return
+    
+    if text.startswith("/removeexp"):
+        await admin_remove_exp(update, context)
+        return
+    
+    if text.startswith("/addupgrade"):
+        await admin_add_upgrade(update, context)
+        return
+    
+    if text.startswith("/removeupgrade"):
+        await admin_remove_upgrade(update, context)
+        return
+    
+    if text == "/admin":
+        await admin_panel(update, context)
+        return
+    
+    if text.startswith("/resetquests"):
+        await admin_reset_quests(update, context)
+        return
+    
+    if text.startswith("/resetallquests"):
+        await admin_reset_all_quests(update, context)
+        return
+    
+    # ==========================================
+    # 2. کامندهای انگلیسی (با /)
     # ==========================================
     if text.startswith("/start"):
         await start(update, context)
@@ -99,7 +141,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     
     # ==========================================
-    # 2. کامندهای فارسی (بدون /)
+    # 3. کامندهای فارسی (بدون /)
     # ==========================================
     if text == "شروع":
         await start(update, context)
@@ -142,19 +184,19 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     
     # ==========================================
-    # 3. کلمه کلیدی (درود بر لورد)
+    # 4. کلمه کلیدی (درود بر لورد)
     # ==========================================
     await handle_keyword(update, context)
     
     # ==========================================
-    # 4. خرید تعداد مشخص (شاپ) - فقط پیوی
+    # 5. خرید تعداد مشخص (شاپ) - فقط پیوی
     # ==========================================
     if context.user_data.get('buy_item_name'):
         await shop_execute_quantity_buy(update, context)
         return
     
     # ==========================================
-    # 5. مرحله وارد کردن اسم (ثبت‌نام) - فقط پیوی
+    # 6. مرحله وارد کردن اسم (ثبت‌نام) - فقط پیوی
     # ==========================================
     if context.user_data.get('awaiting_name'):
         if update.effective_chat.type == "private":
@@ -163,49 +205,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             await update.message.reply_text(
                 "❌ لطفاً ثبت‌نام رو در چت خصوصی بات کامل کن."
             )
-        return
-    
-    # ==========================================
-    # 6. کامندهای ادمین (با ریپلای)
-    # ==========================================
-    if text.startswith("/addgold"):
-        await admin_add_gold(update, context)
-        return
-    
-    if text.startswith("/removegold"):
-        await admin_remove_gold(update, context)
-        return
-    
-    if text.startswith("/reset"):
-        await admin_reset_player(update, context)
-        return
-    
-    if text.startswith("/addexp"):
-        await admin_add_exp(update, context)
-        return
-    
-    if text.startswith("/removeexp"):
-        await admin_remove_exp(update, context)
-        return
-    
-    if text.startswith("/addupgrade"):
-        await admin_add_upgrade(update, context)
-        return
-    
-    if text.startswith("/removeupgrade"):
-        await admin_remove_upgrade(update, context)
-        return
-    
-    if text == "/admin":
-        await admin_panel(update, context)
-        return
-    
-    if text.startswith("/resetquests"):
-        await admin_reset_quests(update, context)
-        return
-    
-    if text.startswith("/resetallquests"):
-        await admin_reset_all_quests(update, context)
         return
     
     # ==========================================
