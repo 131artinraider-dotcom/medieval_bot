@@ -130,7 +130,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     
     if text.startswith("/duel"):
-        print(f"✅ دوئل تشخیص داده شد: {text}")
         await duel(update, context)
         return
     
@@ -173,7 +172,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         await leaderboard(update, context)
         return
     
-    if text == "دوئل":
+    if text.startswith("دوئل"):
         await duel(update, context)
         return
     
@@ -291,3 +290,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
