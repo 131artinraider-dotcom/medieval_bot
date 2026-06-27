@@ -1,5 +1,4 @@
-nano database.py
- import asyncpg
+import asyncpg
 from datetime import datetime, timedelta
 from config import DATABASE_URL, SHOP_ITEMS, DUNGEONS
 from models import Item
