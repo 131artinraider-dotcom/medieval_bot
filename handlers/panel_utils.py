@@ -1,66 +1,70 @@
 # handlers/panel_utils.py
+# سیستم قفل پنل - per-message
+# هر پیام یه owner داره. فقط owner میتونه دکمه‌هاش رو بزنه.
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
-# ========================================
-# توابع قفل پنل - نسخه ساده با context.chat_data
-# ========================================
+
+def _key(message_id: int) -> str:
+    return f"panel_{message_id}"
+
 
 async def check_panel_ownership(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
-    بررسی مالکیت پنل - فقط مالک پنل میتونه دکمه‌هاش رو بزنه
+    بررسی مالکیت پنل.
+    اگه کاربر owner نبود، پیام خطا میده و False برمیگردونه.
     """
     query = update.callback_query
     user_id = query.from_user.id
-    chat_id = update.effective_chat.id
-    
-    key = f"panel_owner_{chat_id}"
-    
-    # ===== اگر پنلی برای این چت ثبت نشده =====
-    if key not in context.chat_data:
-        await query.answer("❌ هیچ پنل فعالی در این گروه وجود ندارد! لطفاً پنل رو دوباره باز کن.", show_alert=True)
-        return False
-    
-    # ===== پنل وجود داره، مالک رو چک کن =====
-    owner_id = context.chat_data[key]
-    
-    # ===== اگر کاربر فعلی مالک نیست =====
+    message_id = query.message.message_id
+
+    key = _key(message_id)
+    owner_id = context.bot_data.get(key)
+
+    if owner_id is None:
+        # پنل قدیمیه و ثبت نشده - اجازه بده رد بشه
+        return True
+
     if owner_id != user_id:
         await query.answer("❌ این پنل متعلق به شما نیست!", show_alert=True)
         return False
-    
+
     return True
+
 
 async def set_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
-    ثبت مالکیت پنل برای کاربر
+    ثبت مالکیت پنل برای این message_id.
+    اگه یه نفر دیگه‌ای owner باشه، False برمیگردونه.
     """
     query = update.callback_query
     user_id = query.from_user.id
-    chat_id = update.effective_chat.id
-    
-    key = f"panel_owner_{chat_id}"
-    
-    # ===== اگر پنل دیگه‌ای فعال هست =====
-    if key in context.chat_data:
-        owner_id = context.chat_data[key]
-        if owner_id != user_id:
-            await query.answer("❌ یک پنل دیگر در این گروه باز است! لطفاً صبر کنید.", show_alert=True)
-            return False
-    
-    # ===== ثبت پنل جدید =====
-    context.chat_data[key] = user_id
+    message_id = query.message.message_id
+
+    key = _key(message_id)
+    owner_id = context.bot_data.get(key)
+
+    if owner_id is not None and owner_id != user_id:
+        await query.answer("❌ این پنل متعلق به شما نیست!", show_alert=True)
+        return False
+
+    context.bot_data[key] = user_id
     return True
 
-async def clear_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """پاک کردن مالکیت پنل"""
-    query = update.callback_query
-    user_id = query.from_user.id
-    chat_id = update.effective_chat.id
-    
-    key = f"panel_owner_{chat_id}"
-    
-    if key in context.chat_data and context.chat_data[key] == user_id:
-        context.chat_data.pop(key, None)
 
+async def clear_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """پاک کردن مالکیت پنل بعد از بسته شدن."""
+    query = update.callback_query
+    message_id = query.message.message_id
+    key = _key(message_id)
+    context.bot_data.pop(key, None)
+
+
+def register_panel(message_id: int, user_id: int, context) -> None:
+    """
+    ثبت owner برای پنلی که تازه ارسال شده.
+    بعد از send/reply_text صدا زده میشه.
+    """
+    key = _key(message_id)
+    context.bot_data[key] = user_id

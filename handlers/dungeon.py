@@ -15,7 +15,7 @@ from database import (
 )
 from models import Player, Item
 from config import DUNGEONS, ITEM_STATS
-from handlers.panel_utils import check_panel_ownership, set_panel_owner, clear_panel_owner
+from handlers.panel_utils import register_panel, clear_panel_owner, check_panel_ownership
 
 def create_bar(current, max_val, length=15):
     if max_val <= 0:
@@ -103,7 +103,9 @@ async def dungeon(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard.append([InlineKeyboardButton("🔙 بستن پنل", callback_data="dungeon_close", style="danger")])
     
-    await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+    _msg = await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+    if _msg:
+        register_panel(_msg.message_id, update.effective_user.id, context)
 
 # ==========================================
 # پنل شروع دانجن
@@ -212,10 +214,6 @@ async def dungeon_battle_start(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
-    await set_panel_owner(update, context)
     
     user_id = query.from_user.id
     
@@ -249,10 +247,9 @@ async def dungeon_battle_round(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     if query:
         await query.answer()
-        if not await ensure_panel_access(update, context):
+        if not await check_panel_ownership(update, context):
             return
-        await set_panel_owner(update, context)
-    
+        
     user_id = update.effective_user.id if update.effective_user else query.from_user.id
     
     dungeon = await get_dungeon(user_id)
@@ -329,7 +326,9 @@ async def dungeon_battle_round(update: Update, context: ContextTypes.DEFAULT_TYP
     if query:
         await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
     else:
-        await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        _msg = await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        if _msg:
+            register_panel(_msg.message_id, update.effective_user.id, context)
 
 # ==========================================
 # حمله پلیر
@@ -339,10 +338,6 @@ async def dungeon_attack(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
-    await set_panel_owner(update, context)
     
     user_id = query.from_user.id
     
@@ -494,10 +489,6 @@ async def dungeon_stage_win(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
-    await set_panel_owner(update, context)
     
     user_id = query.from_user.id
     
@@ -557,10 +548,6 @@ async def dungeon_final_win(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
-    await set_panel_owner(update, context)
     
     user_id = query.from_user.id
     dungeon_data = DUNGEONS.get(dungeon_type)
@@ -615,10 +602,6 @@ async def dungeon_continue(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
-    await set_panel_owner(update, context)
     
     dungeon_type = query.data.replace("dungeon_continue_", "")
     await dungeon_battle_round(update, context, dungeon_type)
@@ -631,10 +614,6 @@ async def dungeon_next_stage(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
-    await set_panel_owner(update, context)
     
     dungeon_type = query.data.replace("dungeon_next_stage_", "")
     await dungeon_battle_round(update, context, dungeon_type)
@@ -647,10 +626,6 @@ async def dungeon_flee(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
-    await set_panel_owner(update, context)
     
     user_id = query.from_user.id
     
@@ -672,10 +647,6 @@ async def dungeon_potion_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
-    await set_panel_owner(update, context)
     
     user_id = query.from_user.id
     
@@ -731,10 +702,6 @@ async def dungeon_use_potion(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
-    await set_panel_owner(update, context)
     
     data = query.data
     parts = data.replace("dungeon_use_potion_", "").split("_")
@@ -796,10 +763,6 @@ async def dungeon_back_to_battle(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
-    await set_panel_owner(update, context)
     
     user_id = query.from_user.id
     dungeon = await get_dungeon(user_id)
@@ -819,9 +782,6 @@ async def dungeon_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
     
     user_id = query.from_user.id
     
@@ -900,9 +860,6 @@ async def dungeon_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    # ===== چک کردن دسترسی پنل =====
-    if not await ensure_panel_access(update, context):
-        return
     
     user_id = query.from_user.id
     

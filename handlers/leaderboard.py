@@ -1,3 +1,4 @@
+from handlers.panel_utils import register_panel
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -23,29 +24,6 @@ CLASS_EMOJIS = {
 # ========================================
 # توابع قفل پنل
 # ========================================
-async def check_ownership(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-    query = update.callback_query
-    user_id = query.from_user.id
-    chat_id = update.effective_chat.id
-    key = f"panel_owner_{chat_id}"
-    
-    if context.chat_data.get(key) and context.chat_data[key] != user_id:
-        await query.answer("❌ این پنل متعلق به شما نیست!", show_alert=True)
-        return False
-    return True
-
-async def set_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
-    chat_id = update.effective_chat.id
-    key = f"panel_owner_{chat_id}"
-    context.chat_data[key] = user_id
-
-async def clear_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    key = f"panel_owner_{chat_id}"
-    context.chat_data.pop(key, None)
-
 # ========================================
 # پنل اصلی لیدربرد
 # ========================================
@@ -89,11 +67,13 @@ async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     ]
     
-    await update.message.reply_text(
+    _msg = await update.message.reply_text(
         msg,
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
+    if _msg:
+        register_panel(_msg.message_id, update.effective_user.id, context)
 
 # ========================================
 # نمایش لیدربرد
@@ -103,9 +83,6 @@ async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE, s
     query = update.callback_query
     await query.answer()
     
-    if not await check_ownership(update, context):
-        return
-    await set_panel_owner(update, context)
     
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
@@ -190,9 +167,6 @@ async def my_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    if not await check_ownership(update, context):
-        return
-    await set_panel_owner(update, context)
     
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
@@ -263,9 +237,6 @@ async def lb_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    if not await check_ownership(update, context):
-        return
-    await set_panel_owner(update, context)
     
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
@@ -319,9 +290,6 @@ async def lb_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    if not await check_ownership(update, context):
-        return
     
-    await clear_panel_owner(update, context)
     await query.delete_message()
 

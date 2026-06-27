@@ -1,3 +1,4 @@
+from handlers.panel_utils import register_panel
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -96,11 +97,13 @@ async def shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🔙 بستن پنل", callback_data="shop_close", style="danger")]
     ]
     
-    await update.message.reply_text(
+    _msg = await update.message.reply_text(
         msg,
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
+    if _msg:
+        register_panel(_msg.message_id, update.effective_user.id, context)
 
 # ===== بخش خرید سلاح (مرحله اول - انتخاب دسته‌بندی) =====
 async def shop_buy_weapon_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -538,11 +541,13 @@ async def shop_execute_quantity_buy(update: Update, context: ContextTypes.DEFAUL
         [InlineKeyboardButton("🔙 برگشت به شاپ", callback_data="shop_back_to_main", style="primary")]
     ]
     
-    await update.message.reply_text(
+    _msg = await update.message.reply_text(
         msg,
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
+    if _msg:
+        register_panel(_msg.message_id, update.effective_user.id, context)
 
 
 

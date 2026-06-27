@@ -1,3 +1,4 @@
+from handlers.panel_utils import register_panel
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
@@ -88,11 +89,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🔙 بستن راهنما", callback_data="help_close", style="danger")]
     ]
     
-    await update.message.reply_text(
+    _msg = await update.message.reply_text(
         msg,
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
+    if _msg:
+        register_panel(_msg.message_id, update.effective_user.id, context)
 
 # ========================================
 # بستن پنل راهنما

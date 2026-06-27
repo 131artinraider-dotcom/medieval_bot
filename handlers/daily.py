@@ -1,3 +1,4 @@
+from handlers.panel_utils import register_panel
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -109,11 +110,13 @@ async def daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
         InlineKeyboardButton("🔙 بستن پنل", callback_data="daily_close", style="danger")
     ])
     
-    await update.message.reply_text(
+    _msg = await update.message.reply_text(
         msg,
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
+    if _msg:
+        register_panel(_msg.message_id, update.effective_user.id, context)
 
 # ========================================
 # دریافت جایزه یک کوئست
