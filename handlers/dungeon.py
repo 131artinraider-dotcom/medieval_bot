@@ -15,7 +15,7 @@ from database import (
 )
 from models import Player, Item
 from config import DUNGEONS, ITEM_STATS
-from handlers.callbacks import check_ownership, set_panel_owner, clear_panel_owner
+from handlers.panel_utils import check_ownership, set_panel_owner, clear_panel_owner
 
 def create_bar(current, max_val, length=15):
     if max_val <= 0:
