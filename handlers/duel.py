@@ -189,3 +189,45 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
+# ========================================
+# بستن دوئل (فقط سازنده)
+# ========================================
+async def duel_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """بستن دوئل توسط سازنده"""
+    query = update.callback_query
+    print("🔒 دکمه بستن دوئل کلیک شد!")
+    
+    user_id = query.from_user.id
+    chat_id = update.effective_chat.id
+    duel_key = f"duel_{chat_id}"
+    
+    if duel_key not in active_duels:
+        await query.edit_message_text("❌ این دوئل منقضی شده است!")
+        return
+    
+    duel_data = active_duels[duel_key]
+    
+    # فقط سازنده میتونه ببنده
+    if user_id != duel_data["creator_id"]:
+        await query.edit_message_text("❌ فقط سازنده دوئل می‌تونه آنرا ببندد!")
+        return
+    
+    amount = duel_data["amount"]
+    creator_id = duel_data["creator_id"]
+    
+    # برگردوندن پول به سازنده
+    conn = await get_db()
+    await conn.execute(
+        "UPDATE users SET gold = gold + $1 WHERE user_id = $2",
+        amount, creator_id
+    )
+    await conn.close()
+    
+    del active_duels[duel_key]
+    
+    await query.edit_message_text(
+        f"🔒 **دوئل بسته شد!**\n\n"
+        f"💰 مبلغ {amount:,} سکه به {duel_data['creator_name']} برگشت.",
+        parse_mode="Markdown"
+    )
+
