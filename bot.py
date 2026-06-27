@@ -135,10 +135,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         await shop_execute_quantity_buy(update, context); return
 
     if context.user_data.get('awaiting_name'):
-        if update.effective_chat.type == "private":
-            await handle_name(update, context)
-        else:
-            await update.message.reply_text("❌ لطفاً ثبت‌نام رو در چت خصوصی بات کامل کن.")
+        await handle_name(update, context)
         return
 
     if text == "/cancel":

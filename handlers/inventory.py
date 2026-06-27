@@ -48,12 +48,9 @@ async def inventory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     equipped_armor = next((item for item in equipped_items if item.item_type == 'armor'), None)
     
     # ساخت پیام
-    msg = f"📦 **اینونتوری {player.character_name}**\n\n"
-    msg += f"❤️ **جون**: {player.stats.hp} / {player.stats.max_hp}\n"
-    msg += f"`{player.get_hp_bar()}`\n\n"
-    msg += f"📈 **اکس‌پی**: {player.stats.exp} / {player.stats.max_exp}\n"
-    msg += f"`{player.get_exp_bar()}`\n\n"
-    msg += f"⭐ **سطح**: {player.stats.level}  |  💰 **طلا**: {player.stats.gold}\n\n"
+    msg = f"📦 **{player.character_name}** | Lv.{player.stats.level} | 💰 {player.stats.gold}\n"
+    msg += f"❤️ {player.stats.hp}/{player.stats.max_hp} `{player.get_hp_bar()}`\n"
+    msg += f"📈 {player.stats.exp}/{player.stats.max_exp} `{player.get_exp_bar()}`\n\n"
     
     msg += "---\n"
     msg += "🛡️ **تجهیزات فعلی:**\n"
@@ -102,10 +99,14 @@ async def inventory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # دکمه‌های رنگی
     keyboard = [
-        [InlineKeyboardButton("⚔️ تجهیز سلاح", callback_data="inv_equip_weapon", style="success")],
-        [InlineKeyboardButton("🛡️ تجهیز زره", callback_data="inv_equip_armor", style="primary")],
-        [InlineKeyboardButton("🧪 استفاده آیتم", callback_data="inv_use_item", style="primary")],
-        [InlineKeyboardButton("🔙 بستن پنل", callback_data="inv_close", style="danger")]
+        [
+            InlineKeyboardButton("⚔️ سلاح", callback_data="inv_equip_weapon", style="success"),
+            InlineKeyboardButton("🛡️ زره", callback_data="inv_equip_armor", style="primary"),
+        ],
+        [
+            InlineKeyboardButton("🧪 آیتم", callback_data="inv_use_item", style="primary"),
+            InlineKeyboardButton("🔙 بستن", callback_data="inv_close", style="danger"),
+        ]
     ]
     
     _msg = await update.message.reply_text(
@@ -433,12 +434,9 @@ async def show_inventory_panel(update: Update, context: ContextTypes.DEFAULT_TYP
     equipped_weapon = next((item for item in equipped_items if item.item_type == 'weapon'), None)
     equipped_armor = next((item for item in equipped_items if item.item_type == 'armor'), None)
     
-    msg = f"📦 **اینونتوری {player.character_name}**\n\n"
-    msg += f"❤️ **جون**: {player.stats.hp} / {player.stats.max_hp}\n"
-    msg += f"`{player.get_hp_bar()}`\n\n"
-    msg += f"📈 **اکس‌پی**: {player.stats.exp} / {player.stats.max_exp}\n"
-    msg += f"`{player.get_exp_bar()}`\n\n"
-    msg += f"⭐ **سطح**: {player.stats.level}  |  💰 **طلا**: {player.stats.gold}\n\n"
+    msg = f"📦 **{player.character_name}** | Lv.{player.stats.level} | 💰 {player.stats.gold}\n"
+    msg += f"❤️ {player.stats.hp}/{player.stats.max_hp} `{player.get_hp_bar()}`\n"
+    msg += f"📈 {player.stats.exp}/{player.stats.max_exp} `{player.get_exp_bar()}`\n\n"
     
     msg += "---\n"
     msg += "🛡️ **تجهیزات فعلی:**\n"

@@ -27,21 +27,20 @@ async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type in ["group", "supergroup"]:
         await add_group_member(user_id, chat_id)
 
-    # حالت پیش‌فرض
     context.user_data['lb_mode'] = 'global'
 
     keyboard = [
         [
-            InlineKeyboardButton("💰 سکه", callback_data="lb_gold"),
-            InlineKeyboardButton("⭐ لول", callback_data="lb_level"),
-            InlineKeyboardButton("⚔️ قدرت", callback_data="lb_power"),
+            InlineKeyboardButton("💰 سکه", callback_data="lb_gold", style="success"),
+            InlineKeyboardButton("⭐ لول", callback_data="lb_level", style="primary"),
+            InlineKeyboardButton("⚔️ قدرت", callback_data="lb_power", style="primary"),
         ],
         [
-            InlineKeyboardButton("🌍 گلوبال", callback_data="lb_type_global"),
-            InlineKeyboardButton("👥 گروهی", callback_data="lb_type_group"),
+            InlineKeyboardButton("🌍 گلوبال", callback_data="lb_type_global", style="primary"),
+            InlineKeyboardButton("👥 گروهی", callback_data="lb_type_group", style="primary"),
         ],
-        [InlineKeyboardButton("📊 رتبه من", callback_data="lb_my_rank")],
-        [InlineKeyboardButton("❌ بستن", callback_data="lb_close")],
+        [InlineKeyboardButton("📊 رتبه من", callback_data="lb_my_rank", style="success")],
+        [InlineKeyboardButton("❌ بستن", callback_data="lb_close", style="danger")],
     ]
 
     _msg = await update.message.reply_text(
@@ -103,22 +102,22 @@ async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE, s
     keyboard = []
     nav = []
     if page > 0:
-        nav.append(InlineKeyboardButton("◀️", callback_data=f"lb_page_{mode}_{stat_type}_{page - 1}"))
+        nav.append(InlineKeyboardButton("◀️", callback_data=f"lb_page_{mode}_{stat_type}_{page - 1}", style="primary"))
     if page < total_pages - 1:
-        nav.append(InlineKeyboardButton("▶️", callback_data=f"lb_page_{mode}_{stat_type}_{page + 1}"))
+        nav.append(InlineKeyboardButton("▶️", callback_data=f"lb_page_{mode}_{stat_type}_{page + 1}", style="primary"))
     if nav:
         keyboard.append(nav)
 
     keyboard.append([
-        InlineKeyboardButton("💰", callback_data=f"lb_page_{mode}_gold_0"),
-        InlineKeyboardButton("⭐", callback_data=f"lb_page_{mode}_level_0"),
-        InlineKeyboardButton("⚔️", callback_data=f"lb_page_{mode}_power_0"),
+        InlineKeyboardButton("💰", callback_data=f"lb_page_{mode}_gold_0", style="success"),
+        InlineKeyboardButton("⭐", callback_data=f"lb_page_{mode}_level_0", style="primary"),
+        InlineKeyboardButton("⚔️", callback_data=f"lb_page_{mode}_power_0", style="primary"),
     ])
     keyboard.append([
-        InlineKeyboardButton("🌍 گلوبال", callback_data="lb_type_global"),
-        InlineKeyboardButton("👥 گروهی", callback_data="lb_type_group"),
+        InlineKeyboardButton("🌍 گلوبال", callback_data="lb_type_global", style="primary"),
+        InlineKeyboardButton("👥 گروهی", callback_data="lb_type_group", style="primary"),
     ])
-    keyboard.append([InlineKeyboardButton("🔙 برگشت", callback_data="lb_back")])
+    keyboard.append([InlineKeyboardButton("🔙 برگشت", callback_data="lb_back", style="primary")])
 
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
@@ -164,7 +163,7 @@ async def my_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"  ⚔️ قدرت: #{rgp}\n"
         )
 
-    keyboard = [[InlineKeyboardButton("🔙 برگشت", callback_data="lb_back")]]
+    keyboard = [[InlineKeyboardButton("🔙 برگشت", callback_data="lb_back", style="primary")]]
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
 
@@ -179,16 +178,16 @@ async def lb_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [
-            InlineKeyboardButton("💰 سکه", callback_data="lb_gold"),
-            InlineKeyboardButton("⭐ لول", callback_data="lb_level"),
-            InlineKeyboardButton("⚔️ قدرت", callback_data="lb_power"),
+            InlineKeyboardButton("💰 سکه", callback_data="lb_gold", style="success"),
+            InlineKeyboardButton("⭐ لول", callback_data="lb_level", style="primary"),
+            InlineKeyboardButton("⚔️ قدرت", callback_data="lb_power", style="primary"),
         ],
         [
-            InlineKeyboardButton("🌍 گلوبال", callback_data="lb_type_global"),
-            InlineKeyboardButton("👥 گروهی", callback_data="lb_type_group"),
+            InlineKeyboardButton("🌍 گلوبال", callback_data="lb_type_global", style="primary"),
+            InlineKeyboardButton("👥 گروهی", callback_data="lb_type_group", style="primary"),
         ],
-        [InlineKeyboardButton("📊 رتبه من", callback_data="lb_my_rank")],
-        [InlineKeyboardButton("❌ بستن", callback_data="lb_close")],
+        [InlineKeyboardButton("📊 رتبه من", callback_data="lb_my_rank", style="success")],
+        [InlineKeyboardButton("❌ بستن", callback_data="lb_close", style="danger")],
     ]
 
     await query.edit_message_text(

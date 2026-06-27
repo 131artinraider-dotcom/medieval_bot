@@ -45,8 +45,8 @@ async def duel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await conn.execute("UPDATE users SET gold = gold - $1 WHERE user_id = $2", amount, user_id)
 
     keyboard = [
-        [InlineKeyboardButton("⚔️ قبول دوئل", callback_data="duel_accept")],
-        [InlineKeyboardButton("🔒 بستن دوئل", callback_data="duel_close")]
+        [InlineKeyboardButton("⚔️ قبول دوئل", callback_data="duel_accept", style="success")],
+        [InlineKeyboardButton("🔒 بستن دوئل", callback_data="duel_close", style="danger")]
     ]
 
     sent = await update.message.reply_text(

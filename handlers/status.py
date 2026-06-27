@@ -36,20 +36,13 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update_quest_progress(user_id, "gold", current_gold)
     
     # ===== ساخت پیام وضعیت =====
+    cls_info = player.get_class_info()
     status_text = (
-        f"📜 **وضعیت {player.character_name}**\n\n"
-        f"📖 کلاس: {player.get_class_info().get('emoji', '')} {player.get_class_info().get('name', '')}\n\n"
-        f"❤️ **جون**: {player.stats.hp} / {player.stats.max_hp}\n"
-        f"`{player.get_hp_bar()}`\n\n"
-        f"📈 **اکس‌پی**: {player.stats.exp} / {player.stats.max_exp}\n"
-        f"`{player.get_exp_bar()}`\n\n"
-        f"⭐ **سطح**: {player.stats.level}\n"
-        f"💰 **طلا**: {player.stats.gold}\n"
-        f"⭐ **آپگرید پوینت**: {upgrade_points or 0}\n\n"
-        f"⚔️ **قدرت اتک**: {player.stats.atk}\n"
-        f"🛡️ **قدرت دفاع**: {player.stats.defense}\n"
-        f"💨 **سرعت**: {player.stats.spd}\n"
-        f"🍀 **شانس**: {player.stats.lck}\n"
+        f"📜 **{player.character_name}** | {cls_info.get('emoji','')} {cls_info.get('name','')} | Lv.{player.stats.level}\n\n"
+        f"❤️ {player.stats.hp}/{player.stats.max_hp} `{player.get_hp_bar()}`\n"
+        f"📈 {player.stats.exp}/{player.stats.max_exp} `{player.get_exp_bar()}`\n\n"
+        f"💰 {player.stats.gold} | ⭐ پوینت: {upgrade_points or 0}\n"
+        f"⚔️ {player.stats.atk} | 🛡️ {player.stats.defense} | 💨 {player.stats.spd} | 🍀 {player.stats.lck}\n"
     )
     
     # ===== اگه کاربر در حال ری‌اسپان هست =====

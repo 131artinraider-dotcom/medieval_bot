@@ -61,7 +61,8 @@ async def _build_daily_panel(user_id: int):
             keyboard.append([
                 InlineKeyboardButton(
                     f"✅ دریافت {diff_emoji} {quest_name}",
-                    callback_data=f"daily_claim_{quest['id']}"
+                    callback_data=f"daily_claim_{quest['id']}",
+                    style="success"
                 )
             ])
 
@@ -69,11 +70,12 @@ async def _build_daily_panel(user_id: int):
         keyboard.append([
             InlineKeyboardButton(
                 f"🎁 دریافت همه ({completed_count} ماموریت)",
-                callback_data="daily_claim_all"
+                callback_data="daily_claim_all",
+                style="success"
             )
         ])
 
-    keyboard.append([InlineKeyboardButton("🔙 بستن", callback_data="daily_close")])
+    keyboard.append([InlineKeyboardButton("🔙 بستن", callback_data="daily_close", style="danger")])
     return msg, keyboard
 
 
@@ -115,7 +117,7 @@ async def daily_claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🎁 {result['gold']} سکه + {result['upgrade']} آپگرید\n"
         f"📌 برای: {result['quest_name']}",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔙 برگشت به ماموریت‌ها", callback_data="daily_back")]
+            [InlineKeyboardButton("🔙 برگشت به ماموریت‌ها", callback_data="daily_back", style="primary")]
         ]),
         parse_mode="Markdown"
     )
@@ -136,7 +138,7 @@ async def daily_claim_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🎁 {result['gold']} سکه + {result['upgrade']} آپگرید\n"
         f"📌 {result['count']} کوئست: {', '.join(result['quest_names'])}",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔙 برگشت", callback_data="daily_back")]
+            [InlineKeyboardButton("🔙 برگشت", callback_data="daily_back", style="primary")]
         ]),
         parse_mode="Markdown"
     )
