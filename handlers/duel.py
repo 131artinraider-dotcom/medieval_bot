@@ -1,53 +1,83 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
-from database import get_user, get_db, update_quest_progress
 import random
 import asyncio
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+from database import get_user, get_db
 
+# ========================================
+# دیکشنری دوئل‌های فعال (توی حافظه)
+# ========================================
 active_duels = {}
-
-print("✅ فایل duel.py Load شد!")
 
 # ========================================
 # شروع دوئل
 # ========================================
 async def duel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """شروع دوئل با مبلغ مشخص"""
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
     
+    print(f"⚔️ دوئل شروع شد توسط کاربر {user_id} در گروه {chat_id}")
+    
+    # چک کردن پیام خصوصی
     if update.effective_chat.type == "private":
-        await update.message.reply_text("❌ دوئل فقط در گروه‌ها!")
+        await update.message.reply_text("❌ دوئل فقط در گروه‌ها قابل انجام است!")
         return
     
-    parts = update.message.text.split()
+    # دریافت مبلغ
+    text = update.message.text.strip()
+    
+    # پشتیبانی از هر دو فرمت
+    if text.startswith("/duel"):
+        parts = text.split()
+    elif text.startswith("دوئل"):
+        parts = ["دوئل"] + text[4:].strip().split()
+    else:
+        await update.message.reply_text(
+            "❌ فرمت صحیح:\n`/duel 1000` یا `دوئل 1000`",
+            parse_mode="Markdown"
+        )
+        return
+    
     if len(parts) < 2:
-        await update.message.reply_text("❌ مبلغ رو وارد کن! مثال: /duel 500")
+        await update.message.reply_text(
+            "❌ لطفاً مبلغ رو وارد کن!\n"
+            "مثال: `/duel 500` یا `دوئل 500`",
+            parse_mode="Markdown"
+        )
         return
     
     try:
         amount = int(parts[1])
     except:
-        await update.message.reply_text("❌ عدد معتبر وارد کن!")
+        await update.message.reply_text("❌ مبلغ نامعتبر! لطفاً یک عدد وارد کن.")
         return
     
     if amount < 100:
-        await update.message.reply_text("❌ حداقل ۱۰۰ سکه!")
+        await update.message.reply_text("❌ حداقل مبلغ **۱۰۰ سکه** است!")
         return
     
+    # دریافت اطلاعات کاربر
     user_row = await get_user(user_id)
     if not user_row or not user_row['is_registered']:
-        await update.message.reply_text("❌ ثبت‌نام نکردی!")
+        await update.message.reply_text("❌ شما ثبت‌نام نکردید!")
         return
     
     if user_row['gold'] < amount:
-        await update.message.reply_text(f"❌ سکه کافی نیست! داری: {user_row['gold']}")
+        await update.message.reply_text(
+            f"❌ سکه کافی نیست!\n"
+            f"💰 سکه‌های تو: {user_row['gold']:,}\n"
+            f"💰 مبلغ دوئل: {amount:,}"
+        )
         return
     
+    # چک کردن دوئل فعال در گروه
     duel_key = f"duel_{chat_id}"
     if duel_key in active_duels:
-        await update.message.reply_text("⚠️ یک دوئل فعال هست!")
+        await update.message.reply_text("⚠️ در حال حاضر یک دوئل فعال در این گروه وجود دارد!")
         return
     
+    # کم کردن پول از سازنده
     conn = await get_db()
     await conn.execute(
         "UPDATE users SET gold = gold - $1 WHERE user_id = $2",
@@ -55,40 +85,47 @@ async def duel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await conn.close()
     
+    # ذخیره دوئل
     active_duels[duel_key] = {
         "creator_id": user_id,
         "creator_name": user_row['character_name'],
         "amount": amount,
         "accepted": False,
         "chat_id": chat_id,
-        "user_id": user_id
+        "message_id": None
     }
+    
+    print(f"📝 دوئل ذخیره شد: {duel_key}")
+    print(f"📝 active_duels: {active_duels}")
+    
+    # ساخت پیام
+    msg = (
+        f"⚔️ **دوئل!**\n\n"
+        f"🗡️ **{user_row['character_name']}** مبلغ **{amount:,}** سکه رو روی میز گذاشت!\n\n"
+        f"💰 جایزه: **{amount:,}** سکه\n\n"
+        f"🎲 برای قبول کردن، دکمه زیر رو بزن!\n"
+        f"⏱️ ۳۰ ثانیه فرصت داری!"
+    )
     
     keyboard = [
         [InlineKeyboardButton("⚔️ قبول دوئل", callback_data="duel_accept", style="success")],
-        [InlineKeyboardButton("🔒 بستن پنل", callback_data="duel_close", style="danger")]
+        [InlineKeyboardButton("🔒 بستن دوئل", callback_data="duel_close", style="danger")]
     ]
     
-    sent = await update.message.reply_text(
-        f"⚔️ **دوئل!**\n\n"
-        f"🗡️ **{user_row['character_name']}** مبلغ **{amount:,}** سکه رو روی میز گذاشت!\n"
-        f"💰 جایزه: {amount:,} سکه\n"
-        f"⏱️ ۳۰ ثانیه فرصت داری!",
+    sent_msg = await update.message.reply_text(
+        msg,
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
     
-    active_duels[duel_key]["message_id"] = sent.message_id
+    active_duels[duel_key]["message_id"] = sent_msg.message_id
     
-    asyncio.create_task(duel_timer(duel_key, chat_id, user_id, amount, user_row['character_name']))
-
-# ========================================
-# تایمر دوئل
-# ========================================
-async def duel_timer(duel_key: str, chat_id: int, user_id: int, amount: int, creator_name: str):
+    # ===== تایمر ۳۰ ثانیه =====
     await asyncio.sleep(30)
     
+    # چک کن که دوئل هنوز فعاله
     if duel_key in active_duels and not active_duels[duel_key]["accepted"]:
+        # برگردوندن پول به سازنده
         conn = await get_db()
         await conn.execute(
             "UPDATE users SET gold = gold + $1 WHERE user_id = $2",
@@ -96,19 +133,21 @@ async def duel_timer(duel_key: str, chat_id: int, user_id: int, amount: int, cre
         )
         await conn.close()
         
-        message_id = active_duels[duel_key].get("message_id")
+        # حذف دوئل
         del active_duels[duel_key]
         
-        from telegram import Bot
-        bot = Bot(token="8997021672:AAG_U864cuKDWVA0tK7O6yoNpY2VS_zragE")
-        await bot.send_message(
-            chat_id=chat_id,
-            text=f"⏰ **زمان دوئل به اتمام رسید!**\n\n💔 مبلغ {amount:,} سکه به {creator_name} برگشت.",
-            parse_mode="Markdown"
+        # ویرایش پیام
+        msg = (
+            f"⏰ **زمان دوئل به اتمام رسید!**\n\n"
+            f"هیچ کس دوئل **{user_row['character_name']}** رو قبول نکرد.\n\n"
+            f"💔 مبلغ {amount:,} سکه به حساب {user_row['character_name']} برگشت."
         )
+        
+        await sent_msg.edit_text(msg, parse_mode="Markdown")
 
-
-# ===== قبول دوئل =====
+# ========================================
+# قبول دوئل
+# ========================================
 async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """قبول کردن دوئل توسط کاربر دیگر"""
     print("✅ دکمه دوئل کلیک شد!")
@@ -120,8 +159,12 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     duel_key = f"duel_{chat_id}"
     
+    print(f"🔍 duel_key: {duel_key}")
+    print(f"🔍 active_duels: {active_duels}")
+    
     if duel_key not in active_duels:
         await query.edit_message_text("❌ این دوئل منقضی شده است!")
+        print("❌ دوئل پیدا نشد!")
         return
     
     duel_data = active_duels[duel_key]
@@ -179,7 +222,8 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     duel_data["accepted"] = True
     del active_duels[duel_key]
     
-    # ===== آپدیت پیشرفت کوئست (برای هر دو نفر) =====
+    # آپدیت کوئست
+    from database import update_quest_progress
     await update_quest_progress(winner_id, "duel")
     await update_quest_progress(loser_id, "duel")
     
@@ -191,14 +235,13 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-
-
 # ========================================
 # بستن دوئل (فقط سازنده)
 # ========================================
 async def duel_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بستن دوئل توسط سازنده"""
     query = update.callback_query
+    print("🔒 دکمه بستن دوئل کلیک شد!")
     
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
