@@ -153,6 +153,30 @@ async def init_db():
         CREATE INDEX IF NOT EXISTS idx_duel_requests_chat_id ON duel_requests(chat_id)
     """)
     
+    # ===== جدول panels (برای قفل پنل) =====
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS panels (
+            id SERIAL PRIMARY KEY,
+            panel_id VARCHAR(20) UNIQUE NOT NULL,
+            user_id BIGINT NOT NULL,
+            chat_id BIGINT NOT NULL,
+            panel_type VARCHAR(30) NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_panels_panel_id ON panels(panel_id)
+    """)
+    
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_panels_user_id ON panels(user_id, chat_id)
+    """)
+    
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_panels_created_at ON panels(created_at)
+    """)
+    
     # ===== پر کردن shop_items =====
     await init_shop_items(conn)
     
@@ -869,50 +893,66 @@ async def get_respawn_time(user_id: int) -> int:
     return 0
 
 # ========================================
-# 7. PANEL OPEN FUNCTIONS
+# 7. PANEL FUNCTIONS (جدید برای قفل پنل)
 # ========================================
-async def open_dungeon_panel(user_id: int, dungeon_type: str):
+import uuid
+
+async def generate_panel_id() -> str:
+    """تولید یک panel_id تصادفی ۸ کاراکتری"""
+    return str(uuid.uuid4())[:8]
+
+async def create_panel(user_id: int, panel_type: str, chat_id: int) -> str:
+    """
+    ایجاد یک پنل جدید در دیتابیس
+    برمیگردونه: panel_id
+    """
+    panel_id = await generate_panel_id()
+    
     conn = await get_db()
-    
-    await conn.execute(
-        "DELETE FROM dungeons WHERE user_id = $1 AND is_active = FALSE AND panel_open = TRUE",
-        user_id
-    )
-    
-    dungeon_data = DUNGEONS.get(dungeon_type)
-    if not dungeon_data:
-        await conn.close()
-        return False
-    
     await conn.execute("""
-        INSERT INTO dungeons (
-            user_id, dungeon_type, stage, current_hp, enemy_hp, 
-            is_active, panel_open, cooldown_until
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    """,
-        user_id, dungeon_type, 0, 0, dungeon_data['enemy_hp'],
-        False, True, datetime.now()
-    )
-    
+        INSERT INTO panels (panel_id, user_id, chat_id, panel_type, created_at)
+        VALUES ($1, $2, $3, $4, NOW())
+    """, panel_id, user_id, chat_id, panel_type)
     await conn.close()
-    return True
+    
+    return panel_id
 
-async def close_dungeon_panel(user_id: int):
+async def get_panel_owner(panel_id: str) -> int:
+    """دریافت owner_id یک پنل از دیتابیس"""
+    conn = await get_db()
+    owner_id = await conn.fetchval(
+        "SELECT user_id FROM panels WHERE panel_id = $1",
+        panel_id
+    )
+    await conn.close()
+    return owner_id
+
+async def delete_panel(panel_id: str):
+    """حذف پنل از دیتابیس"""
     conn = await get_db()
     await conn.execute(
-        "DELETE FROM dungeons WHERE user_id = $1 AND is_active = FALSE AND panel_open = TRUE",
-        user_id
+        "DELETE FROM panels WHERE panel_id = $1",
+        panel_id
     )
     await conn.close()
 
-async def has_open_panel(user_id: int) -> bool:
+async def clear_user_panels(user_id: int, chat_id: int):
+    """پاک کردن همه پنل‌های یک کاربر در یک چت"""
     conn = await get_db()
-    result = await conn.fetchval(
-        "SELECT id FROM dungeons WHERE user_id = $1 AND panel_open = TRUE",
-        user_id
+    await conn.execute(
+        "DELETE FROM panels WHERE user_id = $1 AND chat_id = $2",
+        user_id, chat_id
     )
     await conn.close()
-    return result is not None
+
+async def cleanup_expired_panels(minutes: int = 30):
+    """پاک کردن پنل‌های منقضی شده (بیش از X دقیقه)"""
+    conn = await get_db()
+    await conn.execute(
+        "DELETE FROM panels WHERE created_at < NOW() - INTERVAL '$1 minutes'",
+        minutes
+    )
+    await conn.close()
 
 # ========================================
 # 8. EXP & LEVEL FUNCTIONS
@@ -1618,7 +1658,6 @@ async def get_keyword_cooldown(user_id: int) -> int:
 # ========================================
 # 14. DUEL FUNCTIONS
 # ========================================
-
 async def create_duel(chat_id: int, creator_id: int, creator_name: str, amount: int, message_id: int):
     """ایجاد دوئل جدید در دیتابیس"""
     conn = await get_db()
@@ -1674,4 +1713,3 @@ async def get_duel_creator(chat_id: int):
     )
     await conn.close()
     return creator
-
