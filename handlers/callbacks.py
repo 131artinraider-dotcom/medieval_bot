@@ -1,5 +1,3 @@
-# handlers/callbacks.py
-
 from telegram import Update
 from telegram.ext import ContextTypes
 from handlers.start import select_class_callback
@@ -84,6 +82,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ==========================================
     # 4. دکمه‌های باز کردن پنل جدید - با set_panel_owner
     # ==========================================
+    # دانجن
     if data.startswith("dungeon_start_"):
         if not await set_panel_owner(update, context):
             return
@@ -91,29 +90,48 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await dungeon_start_panel(update, context, dungeon_type)
         return
     
-    if data == "shop_buy_weapon" or data == "shop_buy_armor" or data == "shop_buy_item" or data == "shop_sell":
+    # شاپ - ورود به بخش‌های اصلی
+    if data == "shop_buy_weapon":
         if not await set_panel_owner(update, context):
             return
-        # اینجا باید تابع مربوطه صدا زده بشه
-        if data == "shop_buy_weapon":
-            await shop_buy_weapon_category(update, context)
-        elif data == "shop_buy_armor":
-            await shop_buy_armors(update, context, 0)
-        elif data == "shop_buy_item":
-            await shop_buy_item_category(update, context)
-        elif data == "shop_sell":
-            await shop_sell_category(update, context)
+        await shop_buy_weapon_category(update, context)
         return
     
-    if data == "inv_equip_weapon" or data == "inv_equip_armor" or data == "inv_use_item":
+    if data == "shop_buy_armor":
         if not await set_panel_owner(update, context):
             return
-        if data == "inv_equip_weapon":
-            await equip_weapon_menu(update, context)
-        elif data == "inv_equip_armor":
-            await equip_armor_menu(update, context)
-        elif data == "inv_use_item":
-            await use_item_menu(update, context)
+        await shop_buy_armors(update, context, 0)
+        return
+    
+    if data == "shop_buy_item":
+        if not await set_panel_owner(update, context):
+            return
+        await shop_buy_item_category(update, context)
+        return
+    
+    if data == "shop_sell":
+        if not await set_panel_owner(update, context):
+            return
+        await shop_sell_category(update, context)
+        return
+    
+    # اینونتوری - ورود به بخش‌های اصلی
+    if data == "inv_equip_weapon":
+        if not await set_panel_owner(update, context):
+            return
+        await equip_weapon_menu(update, context)
+        return
+    
+    if data == "inv_equip_armor":
+        if not await set_panel_owner(update, context):
+            return
+        await equip_armor_menu(update, context)
+        return
+    
+    if data == "inv_use_item":
+        if not await set_panel_owner(update, context):
+            return
+        await use_item_menu(update, context)
         return
     
     # ==========================================
@@ -362,4 +380,3 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 14. پیش‌فرض
     # ==========================================
     await query.answer("⏳ در حال توسعه...")
-
