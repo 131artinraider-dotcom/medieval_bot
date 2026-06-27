@@ -82,7 +82,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ==========================================
     # 4. دکمه‌های باز کردن پنل جدید - با set_panel_owner
     # ==========================================
-    # دانجن
+    
+    # ----- دانجن -----
     if data.startswith("dungeon_start_"):
         if not await set_panel_owner(update, context):
             return
@@ -90,7 +91,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await dungeon_start_panel(update, context, dungeon_type)
         return
     
-    # شاپ - ورود به بخش‌های اصلی
+    # ----- شاپ - ورود به بخش‌های اصلی -----
     if data == "shop_buy_weapon":
         if not await set_panel_owner(update, context):
             return
@@ -115,7 +116,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await shop_sell_category(update, context)
         return
     
-    # اینونتوری - ورود به بخش‌های اصلی
+    # ----- اینونتوری - ورود به بخش‌های اصلی -----
     if data == "inv_equip_weapon":
         if not await set_panel_owner(update, context):
             return
@@ -135,23 +136,74 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 5. بقیه دکمه‌ها - با ensure_panel_access
+    # 5. بقیه دکمه‌ها - با ensure_panel_access (چک مالکیت)
     # ==========================================
     if not await ensure_panel_access(update, context):
         return
     
     # ==========================================
-    # 6. دکمه‌های اینونتوری
+    # 6. دکمه‌های بستن پنل - با clear_panel_owner
     # ==========================================
     if data == "inv_close":
         await clear_panel_owner(update, context)
         await close_inventory(update, context)
         return
     
+    if data == "shop_close":
+        await clear_panel_owner(update, context)
+        await shop_close(update, context)
+        return
+    
+    if data == "dungeon_close":
+        await dungeon_close(update, context)
+        return
+    
+    if data == "upgrade_close":
+        await upgrade_close(update, context)
+        return
+    
+    if data == "lb_close":
+        await lb_close(update, context)
+        return
+    
+    if data == "daily_close":
+        await daily_close(update, context)
+        return
+    
+    if data == "help_close":
+        await help_close(update, context)
+        return
+    
+    # ==========================================
+    # 7. دکمه‌های برگشت به پنل اصلی
+    # ==========================================
     if data == "inv_back_to_inventory":
         await show_inventory_panel(update, context)
         return
     
+    if data == "shop_back_to_main":
+        await shop_back_to_main(update, context)
+        return
+    
+    if data == "dungeon_back":
+        await dungeon_back(update, context)
+        return
+    
+    if data == "upgrade_back":
+        await upgrade_back(update, context)
+        return
+    
+    if data == "lb_back":
+        await lb_back(update, context)
+        return
+    
+    if data == "daily_back":
+        await daily_back(update, context)
+        return
+    
+    # ==========================================
+    # 8. دکمه‌های صفحه‌بندی اینونتوری
+    # ==========================================
     if data.startswith("inv_weapon_page_"):
         page = int(data.replace("inv_weapon_page_", ""))
         await equip_weapon_menu(update, context, page)
@@ -167,6 +219,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await use_item_menu(update, context, page)
         return
     
+    # ==========================================
+    # 9. دکمه‌های اجرایی اینونتوری
+    # ==========================================
     if data.startswith("inv_equip_weapon_"):
         await execute_equip_weapon(update, context)
         return
@@ -180,17 +235,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 7. دکمه‌های شاپ
+    # 10. دکمه‌های شاپ - خرید سلاح
     # ==========================================
-    if data == "shop_back_to_main":
-        await shop_back_to_main(update, context)
-        return
-    
-    if data == "shop_close":
-        await clear_panel_owner(update, context)
-        await shop_close(update, context)
-        return
-    
     if data.startswith("shop_buy_weapons_"):
         if "_page_" in data:
             parts = data.split("_page_")
@@ -201,11 +247,17 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await shop_buy_weapons(update, context, 0)
         return
     
+    # ==========================================
+    # 11. دکمه‌های شاپ - خرید زره
+    # ==========================================
     if data.startswith("shop_buy_armor_page_"):
         page = int(data.replace("shop_buy_armor_page_", ""))
         await shop_buy_armors(update, context, page)
         return
     
+    # ==========================================
+    # 12. دکمه‌های شاپ - خرید آیتم
+    # ==========================================
     if data == "shop_buy_consumables":
         await shop_buy_consumables(update, context)
         return
@@ -218,6 +270,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await shop_cancel_buy(update, context)
         return
     
+    # ==========================================
+    # 13. دکمه‌های شاپ - فروش
+    # ==========================================
     if data.startswith("shop_sell_weapon"):
         if "_page_" in data:
             page = int(data.replace("shop_sell_weapon_page_", ""))
@@ -242,6 +297,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await shop_sell_items(update, context, "consumable", 0)
         return
     
+    # ==========================================
+    # 14. دکمه‌های شاپ - اجرای خرید/فروش
+    # ==========================================
     if data.startswith("shop_buy_execute_"):
         await execute_buy(update, context)
         return
@@ -251,7 +309,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 8. دکمه‌های دانجن
+    # 15. دکمه‌های دانجن - نبرد
     # ==========================================
     if data.startswith("dungeon_battle_start_"):
         await dungeon_battle_start(update, context)
@@ -285,40 +343,16 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await dungeon_back_to_battle(update, context)
         return
     
-    if data == "dungeon_back":
-        await dungeon_back(update, context)
-        return
-    
-    if data == "dungeon_close":
-        await dungeon_close(update, context)
-        return
-    
     # ==========================================
-    # 9. آپگرید
+    # 16. دکمه‌های آپگرید
     # ==========================================
-    if data == "upgrade_back":
-        await upgrade_back(update, context)
-        return
-    
-    if data == "upgrade_close":
-        await upgrade_close(update, context)
-        return
-    
     if data.startswith("upgrade_"):
         await execute_upgrade(update, context)
         return
     
     # ==========================================
-    # 10. لیدربرد
+    # 17. دکمه‌های لیدربرد
     # ==========================================
-    if data == "lb_back":
-        await lb_back(update, context)
-        return
-    
-    if data == "lb_close":
-        await lb_close(update, context)
-        return
-    
     if data == "lb_my_rank":
         await my_rank(update, context)
         return
@@ -344,7 +378,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 11. دیلی کوئست
+    # 18. دکمه‌های دیلی کوئست
     # ==========================================
     if data.startswith("daily_claim_"):
         if data == "daily_claim_all":
@@ -353,23 +387,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await daily_claim(update, context)
         return
     
-    if data == "daily_back":
-        await daily_back(update, context)
-        return
-    
-    if data == "daily_close":
-        await daily_close(update, context)
-        return
-    
     # ==========================================
-    # 12. راهنما
-    # ==========================================
-    if data == "help_close":
-        await help_close(update, context)
-        return
-    
-    # ==========================================
-    # 13. ادمین
+    # 19. دکمه ادمین
     # ==========================================
     if data == "admin_close":
         await query.answer()
@@ -377,6 +396,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 14. پیش‌فرض
+    # 20. پیش‌فرض
     # ==========================================
     await query.answer("⏳ در حال توسعه...")
+

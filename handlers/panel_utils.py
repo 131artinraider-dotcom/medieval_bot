@@ -4,15 +4,12 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 # ========================================
-# توابع قفل پنل
+# توابع قفل پنل - نسخه نهایی
 # ========================================
 
 async def ensure_panel_access(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
-    اطمینان از دسترسی کاربر به پنل
-    اگر پنل وجود نداشته باشه، ثبت میکنه
-    اگر پنل وجود داشته باشه و مال خودش باشه، اجازه میده
-    اگر پنل وجود داشته باشه و مال خودش نباشه، رد میکنه
+    بررسی مالکیت پنل - فقط مالک پنل میتونه دکمه‌هاش رو بزنه
     """
     query = update.callback_query
     user_id = query.from_user.id
@@ -22,9 +19,8 @@ async def ensure_panel_access(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     # ===== اگر پنلی برای این چت ثبت نشده =====
     if key not in context.chat_data:
-        # ثبت پنل جدید برای این کاربر
-        context.chat_data[key] = user_id
-        return True
+        await query.answer("❌ هیچ پنل فعالی در این گروه وجود ندارد! لطفاً پنل رو دوباره باز کن.", show_alert=True)
+        return False
     
     # ===== پنل وجود داره، مالک رو چک کن =====
     owner_id = context.chat_data[key]
@@ -40,7 +36,7 @@ async def ensure_panel_access(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def set_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
     ثبت مالکیت پنل برای کاربر
-    فقط یک پنل در هر گروه میتونه فعال باشه
+    اگر پنل دیگه‌ای باز باشه، اجازه نمیده
     """
     query = update.callback_query
     user_id = query.from_user.id
@@ -54,20 +50,28 @@ async def set_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if owner_id != user_id:
             await query.answer("❌ یک پنل دیگر در این گروه باز است! لطفاً صبر کنید.", show_alert=True)
             return False
+        # اگر مال خودشه، اجازه بده
+        return True
     
     # ===== ثبت پنل جدید =====
     context.chat_data[key] = user_id
     return True
 
 async def clear_panel_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """پاک کردن مالکیت پنل کاربر"""
+    """پاک کردن مالکیت پنل - فقط مالک میتونه پاک کنه"""
     query = update.callback_query
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
     
     key = f"panel_owner_{chat_id}"
     
-    # ===== فقط اگه مالک باشه میتونه پنل رو ببنده =====
+    # ===== فقط اگه پنل وجود داشته باشه و مالک باشه =====
     if key in context.chat_data and context.chat_data[key] == user_id:
         context.chat_data.pop(key, None)
+        print(f"🧹 پنل چت {chat_id} توسط کاربر {user_id} بسته شد")
+    else:
+        print(f"⚠️ کاربر {user_id} تلاش کرد پنلی که مالکش نیست رو ببنده")
+
+# ===== alias برای سازگاری با کدهای قدیمی =====
+check_ownership = ensure_panel_access
 
