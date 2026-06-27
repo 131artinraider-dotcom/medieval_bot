@@ -67,7 +67,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"🔍 کالبک دریافت شد: {data}")
     
     # ==========================================
-    # 1. انتخاب کلاس (ثبت‌نام) - بدون قفل
+    # 1. انتخاب کلاس (ثبت‌نام)
     # ==========================================
     if data.startswith("class_") or data == "cancel_registration":
         await select_class_callback(update, context)
@@ -85,7 +85,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 3. دوئل (بدون قفل) - اول از همه
+    # 3. دوئل و دکمه تست (بدون قفل)
     # ==========================================
     if data == "duel_accept":
         print("🚨 دکمه قبول دوئل در callbacks شناسایی شد!")
@@ -97,8 +97,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await duel_close(update, context)
         return
     
+    if data == "test_button":
+        print("🧪 دکمه تست کلیک شد!")
+        await query.answer("✅ دکمه تست کار کرد!", show_alert=True)
+        await query.edit_message_text("✅ دکمه تست با موفقیت کار کرد!")
+        return
+    
     # ==========================================
-    # 4. چک کردن مالکیت پنل برای بقیه
+    # 4. چک کردن مالکیت برای بقیه
     # ==========================================
     if not await check_ownership(update, context):
         return
