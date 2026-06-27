@@ -2,7 +2,8 @@ import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 
-from config import TOKENfrom database import init_db
+from config import TOKEN  # ← این خط رو جدا کن
+from database import init_db  # ← این خط رو جدا کن
 from handlers.start import start, handle_name
 from handlers.callbacks import button_callback
 from handlers.status import status, status_persian
