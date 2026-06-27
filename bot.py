@@ -16,6 +16,7 @@ from handlers.duel import duel
 from handlers.daily import daily
 from handlers.help import help_command
 from handlers.keyword import handle_keyword
+from handlers.pay import pay
 from handlers.admin import (
     admin_panel,
     admin_add_gold,
@@ -137,6 +138,10 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         await daily(update, context)
         return
     
+    if text.startswith("/pay"):
+        await pay(update, context)
+        return
+    
     if text.startswith("/help"):
         await help_command(update, context)
         return
@@ -178,6 +183,10 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     
     if text == "ماموریت" or text == "روزانه":
         await daily(update, context)
+        return
+    
+    if text.startswith("انتقال"):
+        await pay(update, context)
         return
     
     if text == "آموزش" or text == "راهنما":
@@ -233,6 +242,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             "/leaderboard یا 'لیدربرد' → جدول رتبه‌بندی\n"
             "/duel یا 'دوئل' → دوئل با کاربران گروه\n"
             "/daily یا 'ماموریت' → ماموریت‌های روزانه\n"
+            "/pay یا 'انتقال' → انتقال پول به کاربر (ریپلای)\n"
             "/help یا 'آموزش' → راهنمای بات\n"
             "/admin → پنل ادمین (فقط ادمین)",
             parse_mode="Markdown"
@@ -267,12 +277,12 @@ def main():
     print("=" * 50)
     print("📌 کامندهای انگلیسی (با /):")
     print("   /start, /status, /inventory, /shop, /dungeon")
-    print("   /upgrade, /leaderboard, /duel, /daily, /help")
+    print("   /upgrade, /leaderboard, /duel, /daily, /pay, /help")
     print("")
     print("📌 کامندهای فارسی (بدون /):")
     print("   شروع, وضعیت, اموال, شاپ, دانجن")
     print("   آپگرید, لیدربرد, رنکینگ, دوئل, ماموریت")
-    print("   روزانه, آموزش, راهنما")
+    print("   روزانه, انتقال, آموزش, راهنما")
     print("")
     print("📌 کلمه کلیدی:")
     print("   'درود بر لورد' → جایزه ۱۰۰-۱۵۰ سکه (هر ۳ دقیقه)")
