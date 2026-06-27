@@ -45,7 +45,7 @@ CLASSES = {
     "assassin": {
         "name": "اساسین",
         "emoji": "🗡️",
-        "hp": 800,
+        "hp": 900,
         "atk": 10,
         "def": 8,
         "spd": 18,
@@ -79,7 +79,7 @@ INITIAL_ITEMS = {
         "consumables": []
     },
     "assassin": {
-        "weapons": [("خنجر آهنی", 1)],
+        "weapons": [("خنجر فولادی", 1)],
         "armors": [("زره پارچه‌ای", 1)],
         "consumables": []
     },
@@ -247,12 +247,12 @@ WEAPON_BONUSES = {
             "خنجر چوبی": 0.20,
             "خنجر برنزی": 0.30,
             "خنجر آهنی": 0.40,
-            "خنجر فولادی": 0.45,
-            "خنجر زهرآلود": 0.50,
-            "خنجر خونین": 0.55,
+            "خنجر فولادی": 0.50,
+            "خنجر زهرآلود": 0.55,
+            "خنجر خونین": 0.60,
         },
         "lifesteal": {
-            "خنجر خونین": 0.31
+            "خنجر خونین": 0.50
         }
     },
     "axe": {
@@ -271,15 +271,15 @@ DUNGEONS = {
         "description": "گله‌ای از گابلین‌ها به روستاهای اطراف حمله کردن. شوالیه‌ها باید جلوی اونها رو بگیرن!",
         "level_required": 0,
         "stages": 3,
-        "enemy_hp": 500,
-        "enemy_atk": 100,
+        "enemy_hp": 400,
+        "enemy_atk": 150,
         "enemy_def": 10,
         "base_cooldown": 640,
         "base_reward_gold": 1000,
         "base_reward_upgrade": 3,
         "base_reward_exp": 250,
         "drop_items": [
-            {"name": "شمشیر مسی", "chance": 0.30, "type": "weapon"},
+            {"name": "شمشیر برنزی", "chance": 0.30, "type": "weapon"},
             {"name": "پوشن جون لول ۱", "chance": 0.20, "type": "consumable"},
             {"name": "زره پارچه‌ای", "chance": 0.15, "type": "armor"}
         ]
