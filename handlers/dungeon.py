@@ -113,8 +113,7 @@ async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE
     query = update.callback_query
     await query.answer()
     
-    if not await check_ownership(update, context):
-        return
+    # ===== ثبت مالکیت پنل برای کاربر =====
     await set_panel_owner(update, context)
     
     user_id = query.from_user.id
@@ -203,6 +202,7 @@ async def dungeon_battle_start(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     await set_panel_owner(update, context)
@@ -329,6 +329,7 @@ async def dungeon_attack(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     await set_panel_owner(update, context)
@@ -483,6 +484,7 @@ async def dungeon_stage_win(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     await set_panel_owner(update, context)
@@ -545,6 +547,7 @@ async def dungeon_final_win(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     await set_panel_owner(update, context)
@@ -574,6 +577,7 @@ async def dungeon_final_win(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     
     result = await add_exp(user_id, base_exp)
     
+    # ===== پاک کردن پنل کاربر =====
     await clear_panel_owner(update, context)
     await end_dungeon(user_id)
     
@@ -601,6 +605,7 @@ async def dungeon_continue(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     await set_panel_owner(update, context)
@@ -616,6 +621,7 @@ async def dungeon_next_stage(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     await set_panel_owner(update, context)
@@ -631,6 +637,7 @@ async def dungeon_flee(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     await set_panel_owner(update, context)
@@ -655,6 +662,7 @@ async def dungeon_potion_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     await set_panel_owner(update, context)
@@ -713,6 +721,7 @@ async def dungeon_use_potion(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     await set_panel_owner(update, context)
@@ -777,6 +786,7 @@ async def dungeon_back_to_battle(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     await set_panel_owner(update, context)
@@ -799,11 +809,13 @@ async def dungeon_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     
     user_id = query.from_user.id
     
+    # ===== پاک کردن پنل کاربر =====
     await clear_panel_owner(update, context)
     
     user_row = await get_user(user_id)
@@ -878,11 +890,13 @@ async def dungeon_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
+    # ===== چک کردن مالکیت پنل =====
     if not await check_ownership(update, context):
         return
     
     user_id = query.from_user.id
     
+    # ===== پاک کردن پنل کاربر =====
     await clear_panel_owner(update, context)
     await query.delete_message()
 
