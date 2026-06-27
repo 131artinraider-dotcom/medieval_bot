@@ -5,7 +5,7 @@ from telegram.ext import ContextTypes
 from database import get_user, get_db
 
 # ========================================
-# شروع دوئل (بدون asyncio.sleep)
+# شروع دوئل
 # ========================================
 async def duel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """شروع دوئل با مبلغ مشخص"""
@@ -79,11 +79,11 @@ async def duel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """, chat_id, user_id, user_row['character_name'], amount, sent.message_id)
     await conn.close()
     
-    # ===== تایمر رو به صورت غیرهمزمان اجرا کن (بدون قفل کردن بات) =====
+    # ===== تایمر رو به صورت غیرهمزمان اجرا کن =====
     asyncio.create_task(duel_timer(chat_id, user_id, amount, sent))
 
 # ========================================
-# تایمر دوئل (اجرای جداگانه)
+# تایمر دوئل
 # ========================================
 async def duel_timer(chat_id: int, user_id: int, amount: int, sent_msg):
     """تایمر ۳۰ ثانیه‌ای که بات رو قفل نمیکنه"""
@@ -115,14 +115,14 @@ async def duel_timer(chat_id: int, user_id: int, amount: int, sent_msg):
         await conn.close()
 
 # ========================================
-# قبول دوئل (ساده و سریع)
+# قبول دوئل (با نمایش خطا بدون بستن پنل)
 # ========================================
 async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """قبول کردن دوئل"""
     query = update.callback_query
     
     # ===== اول جواب بده =====
-    await query.answer("✅ در حال پردازش...")
+    await query.answer()
     
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
@@ -135,12 +135,12 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     if not duel:
-        await query.edit_message_text("❌ این دوئل منقضی شده است!")
+        await query.answer("❌ این دوئل منقضی شده است!", show_alert=True)
         await conn.close()
         return
     
     if user_id == duel['creator_id']:
-        await query.edit_message_text("❌ نمی‌تونی دوئل خودت رو قبول کنی!")
+        await query.answer("❌ نمی‌تونی دوئل خودت رو قبول کنی!", show_alert=True)
         await conn.close()
         return
     
@@ -148,14 +148,17 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     user_row = await get_user(user_id)
     if not user_row or not user_row['is_registered']:
-        await query.edit_message_text("❌ ثبت‌نام نکردی!")
+        await query.answer("❌ ثبت‌نام نکردی!", show_alert=True)
         await conn.close()
         return
     
     if user_row['gold'] < amount:
-        await query.edit_message_text(f"❌ سکه کافی نیست! نیاز: {amount:,}")
+        await query.answer(f"❌ سکه کافی نیست! نیاز: {amount:,}", show_alert=True)
         await conn.close()
         return
+    
+    # ===== ادامه پردازش (همه چیز اوکی) =====
+    await query.answer("✅ دوئل قبول شد!")
     
     # کم کردن پول از قبول کننده
     await conn.execute(
@@ -198,12 +201,12 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ========================================
-# بستن دوئل
+# بستن دوئل (فقط سازنده)
 # ========================================
 async def duel_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بستن دوئل توسط سازنده"""
     query = update.callback_query
-    await query.answer("✅ بسته شد!")
+    await query.answer()
     
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
@@ -216,12 +219,12 @@ async def duel_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     if not duel:
-        await query.edit_message_text("❌ این دوئل منقضی شده است!")
+        await query.answer("❌ این دوئل منقضی شده است!", show_alert=True)
         await conn.close()
         return
     
     if user_id != duel['creator_id']:
-        await query.edit_message_text("❌ فقط سازنده می‌تونه ببنده!")
+        await query.answer("❌ فقط سازنده می‌تونه ببنده!", show_alert=True)
         await conn.close()
         return
     
