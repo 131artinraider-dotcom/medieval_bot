@@ -2,12 +2,7 @@ import random
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from database import get_user, get_db
-
-# ========================================
-# دیکشنری دوئل‌های فعال (توی حافظه)
-# ========================================
-active_duels = {}
+from database import get_user, get_db, create_duel, get_active_duel, accept_duel, delete_duel
 
 # ========================================
 # شروع دوئل
@@ -71,9 +66,9 @@ async def duel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    # چک کردن دوئل فعال در گروه
-    duel_key = f"duel_{chat_id}"
-    if duel_key in active_duels:
+    # چک کردن دوئل فعال در گروه (از دیتابیس)
+    existing_duel = await get_active_duel(chat_id)
+    if existing_duel:
         await update.message.reply_text("⚠️ در حال حاضر یک دوئل فعال در این گروه وجود دارد!")
         return
     
@@ -84,19 +79,6 @@ async def duel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         amount, user_id
     )
     await conn.close()
-    
-    # ذخیره دوئل
-    active_duels[duel_key] = {
-        "creator_id": user_id,
-        "creator_name": user_row['character_name'],
-        "amount": amount,
-        "accepted": False,
-        "chat_id": chat_id,
-        "message_id": None
-    }
-    
-    print(f"📝 دوئل ذخیره شد: {duel_key}")
-    print(f"📝 active_duels: {active_duels}")
     
     # ساخت پیام
     msg = (
@@ -118,13 +100,15 @@ async def duel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
     
-    active_duels[duel_key]["message_id"] = sent_msg.message_id
+    # ذخیره دوئل در دیتابیس
+    await create_duel(chat_id, user_id, user_row['character_name'], amount, sent_msg.message_id)
     
     # ===== تایمر ۳۰ ثانیه =====
     await asyncio.sleep(30)
     
     # چک کن که دوئل هنوز فعاله
-    if duel_key in active_duels and not active_duels[duel_key]["accepted"]:
+    duel_data = await get_active_duel(chat_id)
+    if duel_data and not duel_data['accepted']:
         # برگردوندن پول به سازنده
         conn = await get_db()
         await conn.execute(
@@ -134,7 +118,7 @@ async def duel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await conn.close()
         
         # حذف دوئل
-        del active_duels[duel_key]
+        await delete_duel(chat_id)
         
         # ویرایش پیام
         msg = (
@@ -157,33 +141,30 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
-    duel_key = f"duel_{chat_id}"
     
-    print(f"🔍 duel_key: {duel_key}")
-    print(f"🔍 active_duels: {active_duels}")
+    # دریافت دوئل از دیتابیس
+    duel_data = await get_active_duel(chat_id)
     
-    if duel_key not in active_duels:
+    if not duel_data:
         await query.edit_message_text("❌ این دوئل منقضی شده است!")
         print("❌ دوئل پیدا نشد!")
         return
     
-    duel_data = active_duels[duel_key]
-    
-    if user_id == duel_data["creator_id"]:
+    if user_id == duel_data['creator_id']:
         await query.edit_message_text("❌ نمی‌تونی دوئل خودت رو قبول کنی!")
         return
     
-    if duel_data["accepted"]:
+    if duel_data['accepted']:
         await query.edit_message_text("❌ این دوئل قبلا قبول شده است!")
         return
+    
+    amount = duel_data['amount']
     
     # بررسی سکه کاربر قبول کننده
     user_row = await get_user(user_id)
     if not user_row or not user_row['is_registered']:
         await query.edit_message_text("❌ ثبت‌نام نکردی!")
         return
-    
-    amount = duel_data["amount"]
     
     if user_row['gold'] < amount:
         await query.edit_message_text(f"❌ سکه کافی نیست! نیاز: {amount:,}")
@@ -198,7 +179,7 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await conn.close()
     
     # تعیین برنده (۵۰/۵۰)
-    winner_id = duel_data["creator_id"] if random.random() < 0.5 else user_id
+    winner_id = duel_data['creator_id'] if random.random() < 0.5 else user_id
     
     # اضافه کردن پول به برنده
     conn = await get_db()
@@ -212,15 +193,18 @@ async def duel_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
         winner_id
     )
     
-    loser_id = user_id if winner_id == duel_data["creator_id"] else duel_data["creator_id"]
+    loser_id = user_id if winner_id == duel_data['creator_id'] else duel_data['creator_id']
     loser_row = await conn.fetchrow(
         "SELECT character_name, gold FROM users WHERE user_id = $1",
         loser_id
     )
     await conn.close()
     
-    duel_data["accepted"] = True
-    del active_duels[duel_key]
+    # آپدیت دوئل در دیتابیس
+    await accept_duel(chat_id, winner_id)
+    
+    # حذف دوئل از دیتابیس (بعد از اتمام)
+    await delete_duel(chat_id)
     
     # آپدیت کوئست
     from database import update_quest_progress
@@ -245,21 +229,21 @@ async def duel_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     user_id = query.from_user.id
     chat_id = update.effective_chat.id
-    duel_key = f"duel_{chat_id}"
     
-    if duel_key not in active_duels:
+    # دریافت دوئل از دیتابیس
+    duel_data = await get_active_duel(chat_id)
+    
+    if not duel_data:
         await query.answer("❌ این دوئل منقضی شده است!", show_alert=True)
         return
     
-    duel_data = active_duels[duel_key]
-    
     # فقط سازنده میتونه ببنده
-    if user_id != duel_data["creator_id"]:
+    if user_id != duel_data['creator_id']:
         await query.answer("❌ فقط سازنده دوئل می‌تونه آنرا ببندد!", show_alert=True)
         return
     
-    amount = duel_data["amount"]
-    creator_id = duel_data["creator_id"]
+    amount = duel_data['amount']
+    creator_id = duel_data['creator_id']
     
     # برگردوندن پول به سازنده
     conn = await get_db()
@@ -269,7 +253,8 @@ async def duel_close(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await conn.close()
     
-    del active_duels[duel_key]
+    # حذف دوئل
+    await delete_duel(chat_id)
     
     await query.edit_message_text(
         f"🔒 **دوئل بسته شد!**\n\n"

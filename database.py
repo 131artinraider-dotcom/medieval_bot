@@ -1,4 +1,5 @@
-import asyncpg
+nano database.py
+ import asyncpg
 from datetime import datetime, timedelta
 from config import DATABASE_URL, SHOP_ITEMS, DUNGEONS
 from models import Item
@@ -1598,4 +1599,65 @@ async def get_keyword_cooldown(user_id: int) -> int:
     remaining = 180 - time_diff
     await conn.close()
     return max(0, int(remaining))
+
+# ========================================
+# 14. DUEL FUNCTIONS
+# ========================================
+
+async def create_duel(chat_id: int, creator_id: int, creator_name: str, amount: int, message_id: int):
+    """ایجاد دوئل جدید در دیتابیس"""
+    conn = await get_db()
+    
+    # حذف دوئل‌های قبلی در این چت
+    await conn.execute(
+        "DELETE FROM active_duels WHERE chat_id = $1 AND accepted = FALSE",
+        chat_id
+    )
+    
+    await conn.execute("""
+        INSERT INTO active_duels (chat_id, creator_id, creator_name, amount, message_id)
+        VALUES ($1, $2, $3, $4, $5)
+    """, chat_id, creator_id, creator_name, amount, message_id)
+    
+    await conn.close()
+
+async def get_active_duel(chat_id: int):
+    """دریافت دوئل فعال در یک چت"""
+    conn = await get_db()
+    duel = await conn.fetchrow(
+        "SELECT * FROM active_duels WHERE chat_id = $1 AND accepted = FALSE ORDER BY created_at DESC LIMIT 1",
+        chat_id
+    )
+    await conn.close()
+    return duel
+
+async def accept_duel(chat_id: int, user_id: int):
+    """قبول کردن دوئل"""
+    conn = await get_db()
+    
+    duel = await conn.fetchrow(
+        "SELECT * FROM active_duels WHERE chat_id = $1 AND accepted = FALSE ORDER BY created_at DESC LIMIT 1",
+        chat_id
+    )
+    
+    if not duel:
+        await conn.close()
+        return None
+    
+    await conn.execute(
+        "UPDATE active_duels SET accepted = TRUE, winner_id = $1 WHERE id = $2",
+        user_id, duel['id']
+    )
+    
+    await conn.close()
+    return duel
+
+async def delete_duel(chat_id: int):
+    """حذف دوئل از دیتابیس"""
+    conn = await get_db()
+    await conn.execute(
+        "DELETE FROM active_duels WHERE chat_id = $1",
+        chat_id
+    )
+    await conn.close()
 
