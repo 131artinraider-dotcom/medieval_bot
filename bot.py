@@ -1,6 +1,7 @@
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
+from telegram.error import TimedOut, NetworkError
 
 from config import TOKEN
 from database import init_db
@@ -249,6 +250,31 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         )
 
 # ========================================
+# هندلر خطاها
+# ========================================
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    """هندل کردن خطاها - جلوگیری از crash بات"""
+    error = context.error
+
+    # TimedOut و NetworkError رو نادیده بگیر - موقتی هستن
+    if isinstance(error, (TimedOut, NetworkError)):
+        return
+
+    # بقیه خطاها رو لاگ کن
+    logging.error(f"خطا: {error}", exc_info=context.error)
+
+    # اگه از callback بود، به کاربر بگو
+    if update and hasattr(update, 'callback_query') and update.callback_query:
+        try:
+            await update.callback_query.answer(
+                "❌ خطایی پیش اومد! دوباره تلاش کن.",
+                show_alert=True
+            )
+        except Exception:
+            pass
+
+
+# ========================================
 # تابع اصلی
 # ========================================
 def main():
@@ -268,6 +294,11 @@ def main():
     # هندلر دکمه‌ها (کالبک)
     # ==========================================
     app.add_handler(CallbackQueryHandler(button_callback))
+
+    # ==========================================
+    # هندلر خطاها
+    # ==========================================
+    app.add_error_handler(error_handler)
     
     # ==========================================
     # راه‌اندازی
