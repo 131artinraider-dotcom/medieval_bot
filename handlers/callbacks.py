@@ -31,7 +31,7 @@ from handlers.leaderboard import (
 from handlers.duel import duel_accept, duel_close
 from handlers.daily import daily_claim, daily_claim_all, daily_back, daily_close
 from handlers.help import help_close
-from handlers.panel_utils import check_ownership, set_panel_owner, clear_panel_owner  # <-- تغییر
+from handlers.panel_utils import check_ownership, set_panel_owner, clear_panel_owner
 
 # ========================================
 # کالبک اصلی
@@ -82,14 +82,37 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 4. چک کردن مالکیت برای بقیه دکمه‌ها
+    # 4. دکمه‌های باز کردن پنل جدید
+    # ==========================================
+    if data in ["dungeon_back", "dungeon_close"]:
+        # این دکمه‌ها پنل رو میبندن، چک مالکیت نیاز دارن
+        if not await check_ownership(update, context):
+            return
+        if data == "dungeon_back":
+            await dungeon_back(update, context)
+        else:
+            await dungeon_close(update, context)
+        return
+    
+    # ==========================================
+    # 5. دکمه‌های دانجن که پنل جدید باز میکنن
+    # ==========================================
+    if data.startswith("dungeon_start_"):
+        # ثبت مالکیت پنل
+        if not await set_panel_owner(update, context):
+            return
+        dungeon_type = data.replace("dungeon_start_", "")
+        await dungeon_start_panel(update, context, dungeon_type)
+        return
+    
+    # ==========================================
+    # 6. بقیه دکمه‌ها - چک مالکیت لازم دارن
     # ==========================================
     if not await check_ownership(update, context):
         return
-    await set_panel_owner(update, context)
     
     # ==========================================
-    # 5. اینونتوری
+    # 7. اینونتوری
     # ==========================================
     if data == "inv_equip_weapon":
         await equip_weapon_menu(update, context)
@@ -140,7 +163,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 6. شاپ
+    # 8. شاپ
     # ==========================================
     if data == "shop_back_to_main":
         await shop_back_to_main(update, context)
@@ -227,23 +250,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 7. دانجن
+    # 9. دانجن (بقیه دکمه‌ها)
     # ==========================================
-    if data == "dungeon_close":
-        await clear_panel_owner(update, context)
-        await dungeon_close(update, context)
-        return
-    
-    if data == "dungeon_back":
-        await clear_panel_owner(update, context)
-        await dungeon_back(update, context)
-        return
-    
-    if data.startswith("dungeon_start_"):
-        dungeon_type = data.replace("dungeon_start_", "")
-        await dungeon_start_panel(update, context, dungeon_type)
-        return
-    
     if data.startswith("dungeon_battle_start_"):
         await dungeon_battle_start(update, context)
         return
@@ -277,7 +285,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 8. آپگرید
+    # 10. آپگرید
     # ==========================================
     if data == "upgrade_back":
         await upgrade_back(update, context)
@@ -292,7 +300,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 9. لیدربرد
+    # 11. لیدربرد
     # ==========================================
     if data == "lb_back":
         await lb_back(update, context)
@@ -327,7 +335,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 10. دیلی کوئست
+    # 12. دیلی کوئست
     # ==========================================
     if data.startswith("daily_claim_"):
         if data == "daily_claim_all":
@@ -345,23 +353,22 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 11. راهنما
+    # 13. راهنما
     # ==========================================
     if data == "help_close":
         await help_close(update, context)
         return
     
     # ==========================================
-    # 12. ادمین
+    # 14. ادمین
     # ==========================================
     if data == "admin_close":
-        await clear_panel_owner(update, context)
         await query.answer()
         await query.delete_message()
         return
     
     # ==========================================
-    # 13. پیش‌فرض
+    # 15. پیش‌فرض
     # ==========================================
     await query.answer("⏳ در حال توسعه...")
 

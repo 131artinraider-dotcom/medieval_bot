@@ -105,6 +105,7 @@ async def dungeon(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
+
 # ==========================================
 # پنل شروع دانجن
 # ==========================================
@@ -113,11 +114,9 @@ async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE
     query = update.callback_query
     await query.answer()
     
-    # ===== ثبت مالکیت پنل برای کاربر =====
-    await set_panel_owner(update, context)
-    
     user_id = query.from_user.id
     
+    # ===== بررسی اینکه کاربر دانجن فعال ندارد =====
     if await check_active_dungeon(user_id):
         await query.edit_message_text(
             "⚠️ **شما در حال حاضر یک دانجن فعال دارید!**\n"
@@ -126,6 +125,7 @@ async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return
     
+    # ===== دریافت اطلاعات کاربر =====
     user_row = await get_user(user_id)
     player = Player.from_db_row(user_row)
     
@@ -133,19 +133,23 @@ async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.edit_message_text("❌ شما ثبت‌نام نکردید!")
         return
     
+    # ===== بررسی وجود دانجن =====
     dungeon_data = DUNGEONS.get(dungeon_type)
     if not dungeon_data:
         await query.edit_message_text("❌ دانجن نامعتبر!")
         return
     
+    # ===== دریافت تجهیزات کاربر =====
     equipped = await get_equipped(user_id)
     equipped_weapon = next((Item(**dict(item)) for item in equipped if item['item_type'] == 'weapon'), None)
     equipped_armor = next((Item(**dict(item)) for item in equipped if item['item_type'] == 'armor'), None)
     
+    # ===== دریافت آپگرید پوینت =====
     conn = await get_db()
     upgrade_points = await conn.fetchval("SELECT upgrade_points FROM users WHERE user_id = $1", user_id)
     await conn.close()
     
+    # ===== محاسبه بونوس سلاح =====
     atk_bonus = 0
     weapon_name = "هیچ"
     if equipped_weapon:
@@ -153,6 +157,7 @@ async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE
         weapon_stats = ITEM_STATS.get('weapon', {}).get(weapon_name, {})
         atk_bonus = weapon_stats.get('atk_bonus', 0)
     
+    # ===== محاسبه بونوس زره =====
     def_bonus = 0
     armor_name = "هیچ"
     if equipped_armor:
@@ -160,6 +165,7 @@ async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE
         armor_stats = ITEM_STATS.get('armor', {}).get(armor_name, {})
         def_bonus = armor_stats.get('def_bonus', 0)
     
+    # ===== ساخت پیام =====
     msg = (
         f"{dungeon_data['emoji']} **{dungeon_data['name']}**\n\n"
         f"📖 **توضیحات ماموریت:**\n"
@@ -187,12 +193,20 @@ async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"`{create_bar(player.stats.hp, player.stats.max_hp)}`"
     )
     
+    # ===== دکمه‌ها =====
     keyboard = [
         [InlineKeyboardButton("⚔️ شروع ماموریت", callback_data=f"dungeon_battle_start_{dungeon_type}", style="success")],
         [InlineKeyboardButton("🔙 برگشت", callback_data="dungeon_back", style="danger")]
     ]
     
-    await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+    await query.edit_message_text(
+        msg,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown"
+    )
+
+
+
 
 # ==========================================
 # شروع نبرد
