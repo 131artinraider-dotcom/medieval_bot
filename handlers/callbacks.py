@@ -1,3 +1,5 @@
+# handlers/callbacks.py
+
 from telegram import Update
 from telegram.ext import ContextTypes
 from handlers.start import select_class_callback
@@ -64,17 +66,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 3. دکمه‌های دوئل - بدون قفل
     # ==========================================
     if data == "duel_accept":
-        print("🚨 دکمه قبول دوئل در callbacks شناسایی شد!")
         await duel_accept(update, context)
         return
     
     if data == "duel_close":
-        print("🚨 دکمه بستن دوئل در callbacks شناسایی شد!")
         await duel_close(update, context)
         return
     
     if data == "test_button":
-        print("🧪 دکمه تست کلیک شد!")
         await query.answer("✅ دکمه تست کار کرد!", show_alert=True)
         await query.edit_message_text("✅ دکمه تست با موفقیت کار کرد!")
         return
@@ -85,62 +84,54 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # ----- دانجن -----
     if data.startswith("dungeon_start_"):
-        panel_id = await set_panel_owner(update, context, "dungeon")
-        if not panel_id:
+        if not await set_panel_owner(update, context):
             return
         dungeon_type = data.replace("dungeon_start_", "")
-        await dungeon_start_panel(update, context, dungeon_type, panel_id)
+        await dungeon_start_panel(update, context, dungeon_type)
         return
     
-    # ----- شاپ - ورود به بخش‌های اصلی -----
+    # ----- شاپ -----
     if data == "shop_buy_weapon":
-        panel_id = await set_panel_owner(update, context, "shop")
-        if not panel_id:
+        if not await set_panel_owner(update, context):
             return
-        await shop_buy_weapon_category(update, context, panel_id)
+        await shop_buy_weapon_category(update, context)
         return
     
     if data == "shop_buy_armor":
-        panel_id = await set_panel_owner(update, context, "shop")
-        if not panel_id:
+        if not await set_panel_owner(update, context):
             return
-        await shop_buy_armors(update, context, 0, panel_id)
+        await shop_buy_armors(update, context, 0)
         return
     
     if data == "shop_buy_item":
-        panel_id = await set_panel_owner(update, context, "shop")
-        if not panel_id:
+        if not await set_panel_owner(update, context):
             return
-        await shop_buy_item_category(update, context, panel_id)
+        await shop_buy_item_category(update, context)
         return
     
     if data == "shop_sell":
-        panel_id = await set_panel_owner(update, context, "shop")
-        if not panel_id:
+        if not await set_panel_owner(update, context):
             return
-        await shop_sell_category(update, context, panel_id)
+        await shop_sell_category(update, context)
         return
     
-    # ----- اینونتوری - ورود به بخش‌های اصلی -----
+    # ----- اینونتوری -----
     if data == "inv_equip_weapon":
-        panel_id = await set_panel_owner(update, context, "inventory")
-        if not panel_id:
+        if not await set_panel_owner(update, context):
             return
-        await equip_weapon_menu(update, context, 0, panel_id)
+        await equip_weapon_menu(update, context)
         return
     
     if data == "inv_equip_armor":
-        panel_id = await set_panel_owner(update, context, "inventory")
-        if not panel_id:
+        if not await set_panel_owner(update, context):
             return
-        await equip_armor_menu(update, context, 0, panel_id)
+        await equip_armor_menu(update, context)
         return
     
     if data == "inv_use_item":
-        panel_id = await set_panel_owner(update, context, "inventory")
-        if not panel_id:
+        if not await set_panel_owner(update, context):
             return
-        await use_item_menu(update, context, 0, panel_id)
+        await use_item_menu(update, context)
         return
     
     # ==========================================
@@ -150,7 +141,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 6. دکمه‌های بستن پنل - با clear_panel_owner
+    # 6. دکمه‌های بستن پنل
     # ==========================================
     if data == "inv_close":
         await clear_panel_owner(update, context)
@@ -183,7 +174,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 7. دکمه‌های برگشت به پنل اصلی
+    # 7. دکمه‌های برگشت
     # ==========================================
     if data == "inv_back_to_inventory":
         await show_inventory_panel(update, context)
@@ -210,38 +201,23 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 8. دکمه‌های صفحه‌بندی اینونتوری
+    # 8. دکمه‌های اینونتوری
     # ==========================================
     if data.startswith("inv_weapon_page_"):
-        page = int(data.split("_")[-1])
-        panel_id = context.user_data.get('current_panel_id')
-        if not panel_id:
-            await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-            return
-        await equip_weapon_menu(update, context, page, panel_id)
+        page = int(data.replace("inv_weapon_page_", ""))
+        await equip_weapon_menu(update, context, page)
         return
     
     if data.startswith("inv_armor_page_"):
-        page = int(data.split("_")[-1])
-        panel_id = context.user_data.get('current_panel_id')
-        if not panel_id:
-            await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-            return
-        await equip_armor_menu(update, context, page, panel_id)
+        page = int(data.replace("inv_armor_page_", ""))
+        await equip_armor_menu(update, context, page)
         return
     
     if data.startswith("inv_consumable_page_"):
-        page = int(data.split("_")[-1])
-        panel_id = context.user_data.get('current_panel_id')
-        if not panel_id:
-            await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-            return
-        await use_item_menu(update, context, page, panel_id)
+        page = int(data.replace("inv_consumable_page_", ""))
+        await use_item_menu(update, context, page)
         return
     
-    # ==========================================
-    # 9. دکمه‌های اجرایی اینونتوری
-    # ==========================================
     if data.startswith("inv_equip_weapon_"):
         await execute_equip_weapon(update, context)
         return
@@ -255,47 +231,25 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 10. دکمه‌های شاپ - خرید سلاح
+    # 9. دکمه‌های شاپ
     # ==========================================
     if data.startswith("shop_buy_weapons_"):
         if "_page_" in data:
             parts = data.split("_page_")
             category = parts[0].replace("shop_buy_weapons_", "")
             page = int(parts[1])
-            panel_id = context.user_data.get('current_panel_id')
-            if not panel_id:
-                await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-                return
-            await shop_buy_weapons(update, context, page, panel_id)
+            await shop_buy_weapons(update, context, page)
         else:
-            panel_id = context.user_data.get('current_panel_id')
-            if not panel_id:
-                await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-                return
-            await shop_buy_weapons(update, context, 0, panel_id)
+            await shop_buy_weapons(update, context, 0)
         return
     
-    # ==========================================
-    # 11. دکمه‌های شاپ - خرید زره
-    # ==========================================
     if data.startswith("shop_buy_armor_page_"):
         page = int(data.replace("shop_buy_armor_page_", ""))
-        panel_id = context.user_data.get('current_panel_id')
-        if not panel_id:
-            await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-            return
-        await shop_buy_armors(update, context, page, panel_id)
+        await shop_buy_armors(update, context, page)
         return
     
-    # ==========================================
-    # 12. دکمه‌های شاپ - خرید آیتم
-    # ==========================================
     if data == "shop_buy_consumables":
-        panel_id = context.user_data.get('current_panel_id')
-        if not panel_id:
-            await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-            return
-        await shop_buy_consumables(update, context, panel_id)
+        await shop_buy_consumables(update, context)
         return
     
     if data.startswith("shop_buy_quantity_"):
@@ -306,60 +260,30 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await shop_cancel_buy(update, context)
         return
     
-    # ==========================================
-    # 13. دکمه‌های شاپ - فروش
-    # ==========================================
     if data.startswith("shop_sell_weapon"):
         if "_page_" in data:
             page = int(data.replace("shop_sell_weapon_page_", ""))
-            panel_id = context.user_data.get('current_panel_id')
-            if not panel_id:
-                await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-                return
-            await shop_sell_items(update, context, "weapon", page, panel_id)
+            await shop_sell_items(update, context, "weapon", page)
         else:
-            panel_id = context.user_data.get('current_panel_id')
-            if not panel_id:
-                await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-                return
-            await shop_sell_items(update, context, "weapon", 0, panel_id)
+            await shop_sell_items(update, context, "weapon", 0)
         return
     
     if data.startswith("shop_sell_armor"):
         if "_page_" in data:
             page = int(data.replace("shop_sell_armor_page_", ""))
-            panel_id = context.user_data.get('current_panel_id')
-            if not panel_id:
-                await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-                return
-            await shop_sell_items(update, context, "armor", page, panel_id)
+            await shop_sell_items(update, context, "armor", page)
         else:
-            panel_id = context.user_data.get('current_panel_id')
-            if not panel_id:
-                await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-                return
-            await shop_sell_items(update, context, "armor", 0, panel_id)
+            await shop_sell_items(update, context, "armor", 0)
         return
     
     if data.startswith("shop_sell_consumable"):
         if "_page_" in data:
             page = int(data.replace("shop_sell_consumable_page_", ""))
-            panel_id = context.user_data.get('current_panel_id')
-            if not panel_id:
-                await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-                return
-            await shop_sell_items(update, context, "consumable", page, panel_id)
+            await shop_sell_items(update, context, "consumable", page)
         else:
-            panel_id = context.user_data.get('current_panel_id')
-            if not panel_id:
-                await query.answer("❌ پنل شما منقضی شده است!", show_alert=True)
-                return
-            await shop_sell_items(update, context, "consumable", 0, panel_id)
+            await shop_sell_items(update, context, "consumable", 0)
         return
     
-    # ==========================================
-    # 14. دکمه‌های شاپ - اجرای خرید/فروش
-    # ==========================================
     if data.startswith("shop_buy_execute_"):
         await execute_buy(update, context)
         return
@@ -369,7 +293,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 15. دکمه‌های دانجن - نبرد
+    # 10. دکمه‌های دانجن
     # ==========================================
     if data.startswith("dungeon_battle_start_"):
         await dungeon_battle_start(update, context)
@@ -404,14 +328,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 16. دکمه‌های آپگرید
+    # 11. دکمه‌های آپگرید
     # ==========================================
     if data.startswith("upgrade_"):
         await execute_upgrade(update, context)
         return
     
     # ==========================================
-    # 17. دکمه‌های لیدربرد
+    # 12. دکمه‌های لیدربرد
     # ==========================================
     if data == "lb_my_rank":
         await my_rank(update, context)
@@ -438,7 +362,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 18. دکمه‌های دیلی کوئست
+    # 13. دکمه‌های دیلی کوئست
     # ==========================================
     if data.startswith("daily_claim_"):
         if data == "daily_claim_all":
@@ -448,7 +372,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 19. دکمه ادمین
+    # 14. دکمه ادمین
     # ==========================================
     if data == "admin_close":
         await query.answer()
@@ -456,7 +380,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ==========================================
-    # 20. پیش‌فرض
+    # 15. پیش‌فرض
     # ==========================================
     await query.answer("⏳ در حال توسعه...")
 
