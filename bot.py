@@ -29,24 +29,15 @@ from handlers.admin import (
     admin_reset_all_quests
 )
 
-# ========================================
-# تنظیمات لاگ
-# ========================================
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
-# ========================================
-# مقداردهی اولیه دیتابیس
-# ========================================
 async def post_init(application):
     await init_db()
     print("✅ دیتابیس آماده است!")
 
-# ========================================
-# هندلر اصلی پیام‌های متنی
-# ========================================
 async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """مدیریت همه پیام‌های متنی (کامندهای انگلیسی و فارسی)"""
     
@@ -238,9 +229,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             parse_mode="Markdown"
         )
 
-# ========================================
-# تابع اصلی
-# ========================================
 def main():
     app = Application.builder().token(TOKEN).post_init(post_init).build()
     
@@ -259,9 +247,6 @@ def main():
     # ==========================================
     app.add_handler(CallbackQueryHandler(button_callback))
     
-    # ==========================================
-    # راه‌اندازی
-    # ==========================================
     print("=" * 50)
     print("⚔️ بات قرون وسطایی با تمام قابلیت‌ها روشن شد! 🏰")
     print("=" * 50)

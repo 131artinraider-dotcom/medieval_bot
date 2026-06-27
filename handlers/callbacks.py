@@ -196,7 +196,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await shop_buy_consumables(update, context)
         return
     
-    # ===== خرید با تعداد مشخص =====
     if data.startswith("shop_buy_quantity_"):
         await shop_buy_quantity(update, context)
         return
