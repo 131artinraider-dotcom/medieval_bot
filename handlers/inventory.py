@@ -48,11 +48,9 @@ async def inventory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     equipped_armor = next((item for item in equipped_items if item.item_type == 'armor'), None)
     
     # ساخت پیام
-    msg = f"📦 **{player.character_name}** | Lv.{player.stats.level} | 💰 {player.stats.gold}\n"
-    msg += f"❤️ {player.stats.hp}/{player.stats.max_hp} `{player.get_hp_bar()}`\n"
-    msg += f"📈 {player.stats.exp}/{player.stats.max_exp} `{player.get_exp_bar()}`\n\n"
-    
-    msg += "---\n"
+    msg = f"📦 **اینونتوری {player.character_name}**\n"
+    msg += f"⭐ سطح: {player.stats.level} | 💰 طلا: {player.stats.gold}\n"
+    msg += f"━━━━━━━━━━━━━━━━━━━━━\n"
     msg += "🛡️ **تجهیزات فعلی:**\n"
     if equipped_weapon:
         msg += f"🗡️ {equipped_weapon.item_name} (تجهیز)\n"
@@ -64,8 +62,7 @@ async def inventory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         msg += "🛡️ هیچ زره‌ای تجهیز نشده\n"
     
-    msg += "\n---\n"
-    
+    msg += "━━━━━━━━━━━━━━━━━━━━━\n"
     if weapons:
         msg += "⚔️ **سلاح‌ها:**\n"
         for w in weapons:
@@ -76,8 +73,6 @@ async def inventory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         msg += "⚔️ **سلاح‌ها:** خالی\n"
     
-    msg += "\n"
-    
     if armors:
         msg += "🛡️ **زره‌ها:**\n"
         for a in armors:
@@ -87,8 +82,6 @@ async def inventory(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 msg += f"- {a.item_name} ×{a.quantity}\n"
     else:
         msg += "🛡️ **زره‌ها:** خالی\n"
-    
-    msg += "\n"
     
     if consumables:
         msg += "🧪 **مصرفی‌ها:**\n"
@@ -434,11 +427,9 @@ async def show_inventory_panel(update: Update, context: ContextTypes.DEFAULT_TYP
     equipped_weapon = next((item for item in equipped_items if item.item_type == 'weapon'), None)
     equipped_armor = next((item for item in equipped_items if item.item_type == 'armor'), None)
     
-    msg = f"📦 **{player.character_name}** | Lv.{player.stats.level} | 💰 {player.stats.gold}\n"
-    msg += f"❤️ {player.stats.hp}/{player.stats.max_hp} `{player.get_hp_bar()}`\n"
-    msg += f"📈 {player.stats.exp}/{player.stats.max_exp} `{player.get_exp_bar()}`\n\n"
-    
-    msg += "---\n"
+    msg = f"📦 **اینونتوری {player.character_name}**\n"
+    msg += f"⭐ سطح: {player.stats.level} | 💰 طلا: {player.stats.gold}\n"
+    msg += f"━━━━━━━━━━━━━━━━━━━━━\n"
     msg += "🛡️ **تجهیزات فعلی:**\n"
     if equipped_weapon:
         msg += f"🗡️ {equipped_weapon.item_name} (تجهیز)\n"
@@ -450,8 +441,7 @@ async def show_inventory_panel(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         msg += "🛡️ هیچ زره‌ای تجهیز نشده\n"
     
-    msg += "\n---\n"
-    
+    msg += "━━━━━━━━━━━━━━━━━━━━━\n"
     if weapons:
         msg += "⚔️ **سلاح‌ها:**\n"
         for w in weapons:
@@ -462,8 +452,6 @@ async def show_inventory_panel(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         msg += "⚔️ **سلاح‌ها:** خالی\n"
     
-    msg += "\n"
-    
     if armors:
         msg += "🛡️ **زره‌ها:**\n"
         for a in armors:
@@ -473,8 +461,6 @@ async def show_inventory_panel(update: Update, context: ContextTypes.DEFAULT_TYP
                 msg += f"- {a.item_name} ×{a.quantity}\n"
     else:
         msg += "🛡️ **زره‌ها:** خالی\n"
-    
-    msg += "\n"
     
     if consumables:
         msg += "🧪 **مصرفی‌ها:**\n"

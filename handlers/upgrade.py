@@ -64,10 +64,21 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # ساخت پیام
     msg = (
-        f"⭐ **آپگرید** | پوینت: {upgrade_points} | هزینه: {cost}\n"
-        f"❤️ {player.stats.hp}/{player.stats.max_hp} `{create_bar(player.stats.hp, player.stats.max_hp)}`\n"
-        f"⚔️{player.stats.atk}(Lv{info['atk_level']}) 🛡️{player.stats.defense}(Lv{info['def_level']}) 💨{player.stats.spd}(Lv{info['spd_level']}) 🍀{player.stats.lck}(Lv{info['lck_level']})\n"
-        f"انتخاب کن:"
+        f"⭐ **سیستم آپگرید**\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 پوینت: {upgrade_points} | 📊 کل آپگرید: {total_upgrades} | هزینه بعدی: {cost}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"❤️ **جون:** {player.stats.hp}/{player.stats.max_hp} | لول {info['hp_level']}\n"
+        f"`{create_bar(player.stats.hp, player.stats.max_hp)}`\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"⚔️ اتک: {player.stats.atk} (لول {info['atk_level']})\n"
+        f"🛡️ دفاع: {player.stats.defense} (لول {info['def_level']})\n"
+        f"💨 سرعت: {player.stats.spd} (لول {info['spd_level']})\n"
+        f"🍀 شانس: {player.stats.lck} (لول {info['lck_level']})\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📈 افزایش هر لول: ❤️ +150 | ⚔️🛡️💨🍀 +2\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📈 **انتخاب استت برای آپگرید:**"
     )
     
     keyboard = []
@@ -182,10 +193,21 @@ async def upgrade_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cost = get_upgrade_cost(total_upgrades)
     
     msg = (
-        f"⭐ **آپگرید** | پوینت: {upgrade_points} | هزینه: {cost}\n"
-        f"❤️ {player.stats.hp}/{player.stats.max_hp} `{create_bar(player.stats.hp, player.stats.max_hp)}`\n"
-        f"⚔️{player.stats.atk}(Lv{info['atk_level']}) 🛡️{player.stats.defense}(Lv{info['def_level']}) 💨{player.stats.spd}(Lv{info['spd_level']}) 🍀{player.stats.lck}(Lv{info['lck_level']})\n"
-        f"انتخاب کن:"
+        f"⭐ **سیستم آپگرید**\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 پوینت: {upgrade_points} | 📊 کل آپگرید: {total_upgrades} | هزینه بعدی: {cost}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"❤️ **جون:** {player.stats.hp}/{player.stats.max_hp} | لول {info['hp_level']}\n"
+        f"`{create_bar(player.stats.hp, player.stats.max_hp)}`\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"⚔️ اتک: {player.stats.atk} (لول {info['atk_level']})\n"
+        f"🛡️ دفاع: {player.stats.defense} (لول {info['def_level']})\n"
+        f"💨 سرعت: {player.stats.spd} (لول {info['spd_level']})\n"
+        f"🍀 شانس: {player.stats.lck} (لول {info['lck_level']})\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📈 افزایش هر لول: ❤️ +150 | ⚔️🛡️💨🍀 +2\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📈 **انتخاب استت برای آپگرید:**"
     )
     
     keyboard = []

@@ -47,20 +47,23 @@ async def show_shop_panel(query, user_id: int):
         return
     
     msg = (
-        f"🏪 **شاپ** | 💰 {player.stats.gold:,} سکه\n"
-        f"سلاح، زره و آیتم بخر یا بفروش:"
+        f"🏪 **فروشگاه قرون وسطی**\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 سکه‌های تو: {player.stats.gold:,}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"یکی از گزینه‌های زیر رو انتخاب کن:"
     )
     
     keyboard = [
         [
-            InlineKeyboardButton("🗡️ سلاح", callback_data="shop_buy_weapon", style="success"),
-            InlineKeyboardButton("🛡️ زره", callback_data="shop_buy_armor", style="primary"),
+            InlineKeyboardButton("🗡️ خرید سلاح", callback_data="shop_buy_weapon", style="success"),
+            InlineKeyboardButton("🛡️ خرید زره", callback_data="shop_buy_armor", style="primary"),
         ],
         [
-            InlineKeyboardButton("🧪 آیتم", callback_data="shop_buy_item", style="primary"),
-            InlineKeyboardButton("💰 فروش", callback_data="shop_sell", style="primary"),
+            InlineKeyboardButton("🧪 خرید آیتم", callback_data="shop_buy_item", style="primary"),
+            InlineKeyboardButton("💰 فروش آیتم", callback_data="shop_sell", style="primary"),
         ],
-        [InlineKeyboardButton("🔙 بستن", callback_data="shop_close", style="danger")]
+        [InlineKeyboardButton("🔙 بستن پنل", callback_data="shop_close", style="danger")]
     ]
     
     await query.edit_message_text(
@@ -85,20 +88,23 @@ async def shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     msg = (
-        f"🏪 **شاپ** | 💰 {player.stats.gold:,} سکه\n"
-        f"سلاح، زره و آیتم بخر یا بفروش:"
+        f"🏪 **فروشگاه قرون وسطی**\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 سکه‌های تو: {player.stats.gold:,}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"یکی از گزینه‌های زیر رو انتخاب کن:"
     )
     
     keyboard = [
         [
-            InlineKeyboardButton("🗡️ سلاح", callback_data="shop_buy_weapon", style="success"),
-            InlineKeyboardButton("🛡️ زره", callback_data="shop_buy_armor", style="primary"),
+            InlineKeyboardButton("🗡️ خرید سلاح", callback_data="shop_buy_weapon", style="success"),
+            InlineKeyboardButton("🛡️ خرید زره", callback_data="shop_buy_armor", style="primary"),
         ],
         [
-            InlineKeyboardButton("🧪 آیتم", callback_data="shop_buy_item", style="primary"),
-            InlineKeyboardButton("💰 فروش", callback_data="shop_sell", style="primary"),
+            InlineKeyboardButton("🧪 خرید آیتم", callback_data="shop_buy_item", style="primary"),
+            InlineKeyboardButton("💰 فروش آیتم", callback_data="shop_sell", style="primary"),
         ],
-        [InlineKeyboardButton("🔙 بستن", callback_data="shop_close", style="danger")]
+        [InlineKeyboardButton("🔙 بستن پنل", callback_data="shop_close", style="danger")]
     ]
     
     _msg = await update.message.reply_text(
