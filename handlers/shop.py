@@ -121,21 +121,15 @@ async def shop_buy_weapon_category(update: Update, context: ContextTypes.DEFAULT
     query = update.callback_query
     await query.answer()
     
-    msg = "🗡️ **دسته‌بندی سلاح‌ها**\n\nهر دسته، سبک مخصوص خودش رو داره:\n\n"
-    
     categories = ["sword", "katana", "dagger", "axe"]
+    msg = "🗡️ **دسته‌بندی سلاح‌ها**\n━━━━━━━━━━━━━━━━━━━━━\n"
     for cat in categories:
         info = CATEGORIES.get(cat, {})
-        msg += f"{info.get('emoji', '')} **{info.get('name', cat)}**: {info.get('desc', '')}\n"
-    
-    msg += "\n🎯 **بونوس هر دسته:**\n"
-    for cat in categories:
-        if cat in WEAPON_BONUSES:
-            bonus = WEAPON_BONUSES[cat]
-            msg += f"   • {bonus['emoji']} {bonus['name']}\n"
-    
-    msg += "\nیکی از دسته‌ها رو انتخاب کن:"
-    
+        bonus = WEAPON_BONUSES.get(cat, {})
+        bonus_txt = f" | {bonus['emoji']} {bonus['name']}" if bonus else ""
+        msg += f"{info.get('emoji','')} **{info.get('name',cat)}**: {info.get('desc','')} {bonus_txt}\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━━\nانتخاب کن:"
+
     keyboard = []
     for cat in categories:
         info = CATEGORIES.get(cat, {})
@@ -208,10 +202,8 @@ async def shop_buy_weapons(update: Update, context: ContextTypes.DEFAULT_TYPE, p
         atk_bonus = weapon_stats.get('atk_bonus', 0)
         
         msg += (
-            f"🔹 **{item['item_name']}**\n"
-            f"   💰 قیمت: {item['price']:,} سکه\n"
+            f"🔹 **{item['item_name']}** | 💰 {item['price']:,} | ⚔️ +{atk_bonus}{bonus_text}\n"
             f"   📋 نیاز: {req_str}\n"
-            f"   ✨ اثر: ⚔️ +{atk_bonus} اتک{bonus_text}\n\n"
         )
     
     keyboard = []
@@ -282,10 +274,8 @@ async def shop_buy_armors(update: Update, context: ContextTypes.DEFAULT_TYPE, pa
         def_bonus = armor_stats.get('def_bonus', 0)
         
         msg += (
-            f"🔹 **{item['item_name']}**\n"
-            f"   💰 قیمت: {item['price']:,} سکه\n"
+            f"🔹 **{item['item_name']}** | 💰 {item['price']:,} | 🛡️ +{def_bonus}\n"
             f"   📋 نیاز: {req_str}\n"
-            f"   ✨ اثر: 🛡️ +{def_bonus} دفاع\n\n"
         )
     
     keyboard = []
@@ -324,10 +314,9 @@ async def shop_buy_item_category(update: Update, context: ContextTypes.DEFAULT_T
     await query.answer()
     
     msg = (
-        "🧪 **دسته‌بندی آیتم‌ها**\n\n"
-        "فعلاً فقط پوشن‌های جون در دسترس هستن:\n\n"
-        "🧪 **پوشن‌های جون**: جون رو پر میکنن (لول ۱ تا ۳)\n\n"
-        "یکی از دسته‌ها رو انتخاب کن:"
+        "🧪 **آیتم‌ها**\n━━━━━━━━━━━━━━━━━━━━━\n"
+        "🧪 پوشن‌های جون: جون رو پر میکنن (لول ۱ تا ۳)\n"
+        "━━━━━━━━━━━━━━━━━━━━━\nانتخاب کن:"
     )
     
     keyboard = [
@@ -358,16 +347,11 @@ async def shop_buy_consumables(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return
     
-    msg = "🧪 **پوشن‌های جون**\n\n"
-    msg += "برای خرید، روی آیتم مورد نظر کلیک کن و سپس **تعداد** مورد نظر رو وارد کن.\n\n"
+    msg = "🧪 **پوشن‌های جون**\n━━━━━━━━━━━━━━━━━━━━━\n"
     
     for item in items:
         heal_percent = int(item['heal_percent'] * 100) if item['heal_percent'] > 0 else 0
-        msg += (
-            f"🔹 **{item['item_name']}**\n"
-            f"   💰 قیمت: {item['price']:,} سکه\n"
-            f"   ✨ اثر: ❤️ {heal_percent}% جون رو پر میکنه\n\n"
-        )
+        msg += f"🔹 **{item['item_name']}** | 💰 {item['price']:,} | ❤️ {heal_percent}%\n"
     
     keyboard = []
     for item in items:
@@ -574,16 +558,20 @@ async def shop_sell_category(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer()
     
     msg = (
-        "💰 **فروش آیتم**\n\n"
-        "آیتم‌های خودت رو با نصف قیمت بفروش.\n\n"
-        "دسته‌بندی رو انتخاب کن:"
+        "💰 **فروش آیتم**\n━━━━━━━━━━━━━━━━━━━━━\n"
+        "آیتم‌ها با نصف قیمت فروخته میشن.\n"
+        "━━━━━━━━━━━━━━━━━━━━━\nانتخاب کن:"
     )
     
     keyboard = [
-        [InlineKeyboardButton("🗡️ سلاح‌ها", callback_data="shop_sell_weapon", style="primary")],
-        [InlineKeyboardButton("🛡️ زره‌ها", callback_data="shop_sell_armor", style="primary")],
-        [InlineKeyboardButton("🧪 آیتم‌ها", callback_data="shop_sell_consumable", style="primary")],
-        [InlineKeyboardButton("🔙 برگشت به شاپ", callback_data="shop_back_to_main", style="danger")]
+        [
+            InlineKeyboardButton("🗡️ سلاح‌ها", callback_data="shop_sell_weapon", style="primary"),
+            InlineKeyboardButton("🛡️ زره‌ها", callback_data="shop_sell_armor", style="primary"),
+        ],
+        [
+            InlineKeyboardButton("🧪 آیتم‌ها", callback_data="shop_sell_consumable", style="primary"),
+            InlineKeyboardButton("🔙 برگشت", callback_data="shop_back_to_main", style="danger"),
+        ]
     ]
     
     await query.edit_message_text(
@@ -630,10 +618,7 @@ async def shop_sell_items(update: Update, context: ContextTypes.DEFAULT_TYPE, it
         shop_item = await get_shop_item_by_name(item['item_name'])
         sell_price = int(shop_item['price'] * SELL_PRICE_RATIO) if shop_item else 0
         
-        msg += (
-            f"🔹 **{item['item_name']}** ×{item['quantity']}\n"
-            f"   💰 قیمت فروش: {sell_price:,} سکه\n\n"
-        )
+        msg += f"🔹 **{item['item_name']}** ×{item['quantity']} | 💰 {sell_price:,}\n"
     
     keyboard = []
     for item in page_items:

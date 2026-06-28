@@ -470,10 +470,14 @@ async def show_inventory_panel(update: Update, context: ContextTypes.DEFAULT_TYP
         msg += "🧪 **مصرفی‌ها:** خالی\n"
     
     keyboard = [
-        [InlineKeyboardButton("⚔️ تجهیز سلاح", callback_data="inv_equip_weapon", style="success")],
-        [InlineKeyboardButton("🛡️ تجهیز زره", callback_data="inv_equip_armor", style="primary")],
-        [InlineKeyboardButton("🧪 استفاده آیتم", callback_data="inv_use_item", style="primary")],
-        [InlineKeyboardButton("🔙 بستن پنل", callback_data="inv_close", style="danger")]
+        [
+            InlineKeyboardButton("⚔️ سلاح", callback_data="inv_equip_weapon", style="success"),
+            InlineKeyboardButton("🛡️ زره", callback_data="inv_equip_armor", style="primary"),
+        ],
+        [
+            InlineKeyboardButton("🧪 آیتم", callback_data="inv_use_item", style="primary"),
+            InlineKeyboardButton("🔙 بستن", callback_data="inv_close", style="danger"),
+        ]
     ]
     
     await query.edit_message_text(

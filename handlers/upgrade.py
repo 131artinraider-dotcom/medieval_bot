@@ -81,18 +81,18 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📈 **انتخاب استت برای آپگرید:**"
     )
     
+    stat_items = list(STAT_EMOJIS.items())
     keyboard = []
-    
-    for stat, emoji in STAT_EMOJIS.items():
-        stat_name = STAT_NAMES[stat]
-        keyboard.append([
-            InlineKeyboardButton(
-                f"{emoji} {stat_name} ({cost} پوینت)",
+    for i in range(0, len(stat_items), 2):
+        row = []
+        for stat, emoji in stat_items[i:i+2]:
+            stat_name = STAT_NAMES[stat]
+            row.append(InlineKeyboardButton(
+                f"{emoji} {stat_name}",
                 callback_data=f"upgrade_{stat}",
-
                 style="success" if stat == "hp" else "primary"
-            )
-        ])
+            ))
+        keyboard.append(row)
     
     keyboard.append([
         InlineKeyboardButton("🔙 بستن پنل", callback_data="upgrade_close", style="danger")
@@ -210,17 +210,18 @@ async def upgrade_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📈 **انتخاب استت برای آپگرید:**"
     )
     
+    stat_items = list(STAT_EMOJIS.items())
     keyboard = []
-    
-    for stat, emoji in STAT_EMOJIS.items():
-        stat_name = STAT_NAMES[stat]
-        keyboard.append([
-            InlineKeyboardButton(
-                f"{emoji} {stat_name} ({cost} پوینت)",
+    for i in range(0, len(stat_items), 2):
+        row = []
+        for stat, emoji in stat_items[i:i+2]:
+            stat_name = STAT_NAMES[stat]
+            row.append(InlineKeyboardButton(
+                f"{emoji} {stat_name}",
                 callback_data=f"upgrade_{stat}",
                 style="success" if stat == "hp" else "primary"
-            )
-        ])
+            ))
+        keyboard.append(row)
     
     keyboard.append([
         InlineKeyboardButton("🔙 بستن پنل", callback_data="upgrade_close", style="danger")
