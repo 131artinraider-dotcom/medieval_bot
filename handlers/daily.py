@@ -98,7 +98,7 @@ async def daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown"
     )
     if _msg:
-        register_panel(_msg.message_id, user_id, context)
+        register_panel(_msg.message_id, user_id, context, update.effective_chat.id)
 
 
 async def daily_claim(update: Update, context: ContextTypes.DEFAULT_TYPE):

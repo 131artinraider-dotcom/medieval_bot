@@ -52,7 +52,7 @@ async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
     if _msg:
-        register_panel(_msg.message_id, user_id, context)
+        register_panel(_msg.message_id, user_id, context, update.effective_chat.id)
 
 
 async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE, stat_type: str, mode: str, page: int = 0):

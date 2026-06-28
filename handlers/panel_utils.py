@@ -8,10 +8,10 @@ def _key(message_id: int) -> str:
     return f"panel_{message_id}"
 
 
-def register_panel(message_id: int, user_id: int, context) -> None:
+def register_panel(message_id: int, user_id: int, context, chat_id: int = None) -> None:
     """ثبت owner برای پنل با timestamp"""
     key = _key(message_id)
-    context.bot_data[key] = {"uid": user_id, "ts": time.time()}
+    context.bot_data[key] = {"uid": user_id, "ts": time.time(), "chat_id": chat_id}
 
 
 async def check_panel_ownership(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:

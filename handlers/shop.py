@@ -113,7 +113,7 @@ async def shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
     if _msg:
-        register_panel(_msg.message_id, update.effective_user.id, context)
+        register_panel(_msg.message_id, update.effective_user.id, context, update.effective_chat.id)
 
 # ===== بخش خرید سلاح (مرحله اول - انتخاب دسته‌بندی) =====
 async def shop_buy_weapon_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -541,7 +541,7 @@ async def shop_execute_quantity_buy(update: Update, context: ContextTypes.DEFAUL
         parse_mode="Markdown"
     )
     if _msg:
-        register_panel(_msg.message_id, update.effective_user.id, context)
+        register_panel(_msg.message_id, update.effective_user.id, context, update.effective_chat.id)
 
 
 

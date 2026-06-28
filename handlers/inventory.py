@@ -108,7 +108,7 @@ async def inventory(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
     if _msg:
-        register_panel(_msg.message_id, update.effective_user.id, context)
+        register_panel(_msg.message_id, update.effective_user.id, context, update.effective_chat.id)
 
 # ===== نمایش لیست سلاح‌ها برای تجهیز =====
 async def equip_weapon_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, page: int = 0):

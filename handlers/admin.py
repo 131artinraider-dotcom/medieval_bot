@@ -582,3 +582,42 @@ async def admin_rename_player(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"✏️ جدید: **{new_name}**",
         parse_mode="Markdown"
     )
+
+
+# ===== بستن همه پنل‌های باز =====
+async def admin_close_all_panels(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """بستن همه پنل‌های باز همه کاربران (فقط ادمین)"""
+    user_id = update.effective_user.id
+
+    if not await is_admin(user_id):
+        await update.message.reply_text("❌ شما دسترسی ادمین ندارید!")
+        return
+
+    # پیدا کردن همه پنل‌های ثبت‌شده در bot_data
+    panel_keys = [k for k in context.bot_data.keys() if k.startswith("panel_")]
+    closed = 0
+    failed = 0
+
+    for key in panel_keys:
+        data = context.bot_data.get(key)
+        if not data:
+            continue
+        try:
+            chat_id = data.get("chat_id")
+            message_id = int(key.replace("panel_", ""))
+            if chat_id:
+                await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
+                closed += 1
+        except Exception:
+            failed += 1
+        finally:
+            context.bot_data.pop(key, None)
+
+    await update.message.reply_text(
+        f"✅ **بستن پنل‌ها تموم شد!**\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🗑️ بسته شد: {closed}\n"
+        f"⚠️ خطا: {failed}\n"
+        f"📋 باقی‌مونده: {len([k for k in context.bot_data.keys() if k.startswith('panel_')])}",
+        parse_mode="Markdown"
+    )

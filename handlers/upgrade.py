@@ -104,7 +104,7 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
     if _msg:
-        register_panel(_msg.message_id, update.effective_user.id, context)
+        register_panel(_msg.message_id, update.effective_user.id, context, update.effective_chat.id)
 
 
 # ===== اجرای آپگرید =====
