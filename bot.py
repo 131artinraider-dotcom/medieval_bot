@@ -72,6 +72,8 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         await admin_reset_all_quests(update, context); return
     if text.startswith("/resetquests"):
         await admin_reset_quests(update, context); return
+    if text.startswith("/resetdungeon"):
+        await admin_reset_dungeon(update, context); return
     if text.startswith("/reset"):
         await admin_reset_player(update, context); return
     if text.startswith("/addexp"):
@@ -88,8 +90,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         await admin_panel(update, context); return
     if text == "/closeallpanels":
         await admin_close_all_panels(update, context); return
-    if text == "/resetdungeon":
-        await admin_reset_dungeon(update, context); return
 
     if text.startswith("/start"):
         await start(update, context); return
