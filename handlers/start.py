@@ -77,6 +77,13 @@ async def handle_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def select_class_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """ثبت کلاس انتخاب شده و تکمیل ثبت‌نام"""
     query = update.callback_query
+    user_id = query.from_user.id
+
+    # چک مالکیت پنل - فقط کسی که /start زده میتونه کلاس انتخاب کنه
+    if not context.user_data.get('character_name'):
+        await query.answer("❌ این پنل مال تو نیست!", show_alert=True)
+        return
+
     await query.answer()
     
     data = query.data
