@@ -22,7 +22,8 @@ from handlers.admin import (
     admin_panel, admin_add_gold, admin_remove_gold, admin_reset_player,
     admin_add_exp, admin_remove_exp, admin_add_upgrade, admin_remove_upgrade,
     admin_reset_quests, admin_reset_all_quests, admin_rename_player,
-    admin_close_all_panels
+    admin_close_all_panels,
+    admin_reset_dungeon
 )
 
 # ========================================
@@ -87,6 +88,8 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         await admin_panel(update, context); return
     if text == "/closeallpanels":
         await admin_close_all_panels(update, context); return
+    if text == "/resetdungeon":
+        await admin_reset_dungeon(update, context); return
 
     if text.startswith("/start"):
         await start(update, context); return

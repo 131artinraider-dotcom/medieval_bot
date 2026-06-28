@@ -621,3 +621,43 @@ async def admin_close_all_panels(update: Update, context: ContextTypes.DEFAULT_T
         f"📋 باقی‌مونده: {len([k for k in context.bot_data.keys() if k.startswith('panel_')])}",
         parse_mode="Markdown"
     )
+
+
+# ===== ریست دانجن کاربر =====
+async def admin_reset_dungeon(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ریست دانجن گیر کرده کاربر (فقط ادمین)"""
+    user_id = update.effective_user.id
+
+    if not await is_admin(user_id):
+        await update.message.reply_text("❌ شما دسترسی ادمین ندارید!")
+        return
+
+    if not update.message.reply_to_message:
+        await update.message.reply_text(
+            "❌ به پیام کاربر ریپلای کن!\n"
+            "مثال: /resetdungeon (ریپلای)"
+        )
+        return
+
+    target_user = update.message.reply_to_message.from_user
+
+    conn = await get_db()
+    dungeon = await conn.fetchrow(
+        "SELECT * FROM dungeons WHERE user_id = $1", target_user.id
+    )
+
+    if not dungeon:
+        await conn.close()
+        await update.message.reply_text(
+            f"⚠️ **{target_user.first_name}** هیچ دانجن فعالی در دیتابیس نداره!"
+        )
+        return
+
+    await conn.execute("DELETE FROM dungeons WHERE user_id = $1", target_user.id)
+    await conn.close()
+
+    await update.message.reply_text(
+        f"✅ دانجن **{target_user.first_name}** ریست شد!\n"
+        f"الان میتونه دوباره دانجن بزنه.",
+        parse_mode="Markdown"
+    )
