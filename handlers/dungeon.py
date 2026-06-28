@@ -169,30 +169,28 @@ async def dungeon_start_panel(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     # ===== ساخت پیام =====
     msg = (
-        f"{dungeon_data['emoji']} **{dungeon_data['name']}**\n\n"
-        f"📖 **توضیحات ماموریت:**\n"
-        f"{dungeon_data.get('description', 'ماموریتی برای نابودی هیولاها')}\n\n"
-        f"🛡️ **تجهیزات تو:**\n"
-        f"🗡️ سلاح: {weapon_name} (+{atk_bonus} اتک)\n"
-        f"🛡️ زره: {armor_name} (+{def_bonus} دفاع)\n\n"
-        f"📊 **اطلاعات ماموریت:**\n"
-        f"📍 مراحل: {dungeon_data['stages']} مرحله\n"
-        f"📍 نیاز: لول {dungeon_data.get('level_required', 0)}\n\n"
-        f"🎁 **پاداش‌ها:**\n"
-        f"💰 {dungeon_data['base_reward_gold']} سکه\n"
-        f"⭐ {dungeon_data['base_reward_upgrade']} آپگرید پوینت\n"
-        f"✨ {dungeon_data['base_reward_exp']} تجربه\n\n"
-        f"🎲 **احتمال دراپ آیتم از هر مرحله:**\n"
+        f"{dungeon_data['emoji']} **{dungeon_data['name']}**\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{dungeon_data.get('description', 'ماموریتی برای نابودی هیولاها')}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🗡️ {weapon_name} (+{atk_bonus}) | 🛡️ {armor_name} (+{def_bonus})\n"
+        f"📍 {dungeon_data['stages']} مرحله | نیاز: لول {dungeon_data.get('level_required', 0)}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🎁 💰 {dungeon_data['base_reward_gold']} | ⭐ {dungeon_data['base_reward_upgrade']} پوینت | ✨ {dungeon_data['base_reward_exp']} اکس‌پی\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🎲 دراپ: "
     )
     
+    drops = []
     for item in dungeon_data['drop_items']:
         chance_percent = int(item['chance'] * 100)
-        msg += f"   • {item['name']} ({chance_percent}%)\n"
+        drops.append(f"{item['name']} ({chance_percent}%)")
+    msg += " | ".join(drops) + "\n"
     
     msg += (
-        f"\n⭐ **آپگرید پوینت‌های تو:** {upgrade_points or 0}\n"
-        f"❤️ **جون تو:** {player.stats.hp} / {player.stats.max_hp}\n"
-        f"`{create_bar(player.stats.hp, player.stats.max_hp)}`"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"❤️ {player.stats.hp}/{player.stats.max_hp} `{create_bar(player.stats.hp, player.stats.max_hp)}`\n"
+        f"⭐ پوینت: {upgrade_points or 0}"
     )
     
     # ===== دکمه‌ها =====
@@ -307,14 +305,13 @@ async def dungeon_battle_round(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     
     msg = (
-        f"⚔️ **نبرد با {dungeon_data['name']}** (مرحله {stage}/{total_stages})\n\n"
-        f"🛡️ **تجهیزات تو:**\n"
-        f"🗡️ سلاح: {weapon_name} (+{atk_bonus} اتک)\n"
-        f"🛡️ زره: {armor_name} (+{def_bonus} دفاع)\n\n"
-        f"📊 **وضعیت نبرد:**\n\n"
-        f"❤️ **تو:** {current_hp} / {player.stats.max_hp}\n"
-        f"`{create_bar(current_hp, player.stats.max_hp)}`\n\n"
-        f"🗡️ **{dungeon_data['name']}:** {enemy_hp} / {dungeon_data['enemy_hp']}\n"
+        f"⚔️ **{dungeon_data['name']}** | مرحله {stage}/{total_stages}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🗡️ {weapon_name} (+{atk_bonus}) | 🛡️ {armor_name} (+{def_bonus})\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"❤️ تو: {current_hp}/{player.stats.max_hp}\n"
+        f"`{create_bar(current_hp, player.stats.max_hp)}`\n"
+        f"🗡️ {dungeon_data['name']}: {enemy_hp}/{dungeon_data['enemy_hp']}\n"
         f"`{create_bar(enemy_hp, dungeon_data['enemy_hp'])}`"
     )
     
@@ -457,13 +454,9 @@ async def dungeon_attack(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # ===== ساخت پیام نتیجه =====
     msg = (
-        f"⚔️ **ادامه نبرد با {dungeon_data['name']}**\n\n"
-        f"🛡️ **تجهیزات تو:**\n"
-        f"🗡️ سلاح: {weapon_name} (+{atk_bonus} اتک)\n"
-        f"🛡️ زره: {armor_name} (+{def_bonus} دفاع)\n\n"
-        f"💥 **تو به {dungeon_data['name']} حمله کردی!**\n"
-        f"   🔹 اتک تو: {total_atk} | دفاع دشمن: {enemy_def}\n"
-        f"   🔹 دمیج پایه: {player_damage}\n"
+        f"⚔️ **{dungeon_data['name']}** | مرحله {stage}/{total_stages}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"💥 حمله تو: {total_atk} اتک → {total_damage_dealt} دمیج | دشمن: {enemy_hp} جون\n"
     )
     
     if bonus_messages:
@@ -471,12 +464,10 @@ async def dungeon_attack(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg += f"   ✨ {bonus_msg}\n"
     
     msg += (
-        f"   🔹 دمیج نهایی: {total_damage_dealt}\n"
-        f"   🔹 جون باقی‌مونده دشمن: {enemy_hp}\n\n"
-        f"⚔️ **{dungeon_data['name']} بهت حمله کرد!**\n"
-        f"   🔹 اتک دشمن: {enemy_atk} | دفاع تو: {total_def}\n"
-        f"   🔹 دمیج خورده: {enemy_damage}\n"
-        f"   🔹 جون باقی‌مونده تو: {current_hp}"
+        f"🛡️ حمله دشمن: {enemy_atk} اتک → {enemy_damage} دمیج | تو: {current_hp} جون\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"❤️ تو: {current_hp}/{player.stats.max_hp} `{create_bar(current_hp, player.stats.max_hp)}`\n"
+        f"🗡️ دشمن: {enemy_hp}/{dungeon_data['enemy_hp']} `{create_bar(enemy_hp, dungeon_data['enemy_hp'])}`"
     )
     
     keyboard = [[InlineKeyboardButton("⚔️ ادامه", callback_data=f"dungeon_continue_{dungeon_type}", style="primary")]]
@@ -527,16 +518,13 @@ async def dungeon_stage_win(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             drop_item = item
             break
     
-    msg = f"🎉 **پیروزی در مرحله {stage}!**\n\n"
-    msg += f"✅ مرحله {stage} رو با موفقیت به اتمام رسوندی!\n"
-    msg += f"📍 مرحله بعدی در انتظارته...\n\n"
+    msg = f"🎉 **مرحله {stage} تموم شد!**\n━━━━━━━━━━━━━━━━━━━━━\n"
     
     if drop_item:
         await add_item_to_inventory(user_id, drop_item['name'], drop_item['type'])
-        msg += f"🎁 **دراپ آیتم:**\n"
-        msg += f"   ✨ {drop_item['name']} به اینونتوری اضافه شد!\n\n"
+        msg += f"🎁 دراپ: {drop_item['name']} به اینونتوری اضافه شد!\n"
     else:
-        msg += f"😔 متاسفانه هیچ آیتمی از دشمنان نیفتاد!\n\n"
+        msg += f"😔 هیچ آیتمی نیفتاد.\n"
     
     keyboard = [[InlineKeyboardButton("⚔️ مرحله بعد", callback_data=f"dungeon_next_stage_{dungeon_type}", style="success")]]
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
@@ -580,18 +568,17 @@ async def dungeon_final_win(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     await end_dungeon(user_id)
     
     msg = (
-        f"🏆 **پیروزی نهایی!**\n\n"
-        f"✅ {dungeon_data['name']} رو با موفقیت به اتمام رسوندی!\n\n"
-        f"🎁 **پاداش‌ها:**\n"
-        f"💰 {final_gold} سکه (با اعمال شانس)\n"
-        f"⭐ {base_upgrade} آپگرید پوینت\n"
-        f"✨ {base_exp} تجربه\n"
+        f"🏆 **پیروزی نهایی!**\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"✅ {dungeon_data['name']} تموم شد!\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 {final_gold} سکه | ⭐ {base_upgrade} پوینت | ✨ {base_exp} اکس‌پی\n"
     )
     
     if result and result['leveled_up']:
-        msg += f"\n🎉 **لول آپ!**\n"
-        msg += f"⭐ لول جدید: {result['new_level']}\n"
-        msg += f"📈 اکس‌پی باقی‌مونده: {result['new_exp']} / {result['new_max_exp']}"
+        msg += f"━━━━━━━━━━━━━━━━━━━━━\n"
+        msg += f"🎉 **لول آپ!** ⭐ لول {result['new_level']}\n"
+        msg += f"📈 {result['new_exp']}/{result['new_max_exp']} اکس‌پی"
     
     await query.edit_message_text(msg, parse_mode="Markdown")
 
@@ -676,14 +663,14 @@ async def dungeon_potion_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return
     
-    msg = "🧪 **پوشن‌های موجود:**\n\n"
+    msg = "🧪 **پوشن‌ها:**\n━━━━━━━━━━━━━━━━━━━━━\n"
     keyboard = []
     
     for potion in potions:
         msg += f"• {potion.get_display_name()} ×{potion.quantity}\n"
         keyboard.append([
             InlineKeyboardButton(
-                f"استفاده {potion.get_display_name()}",
+                f"🧪 {potion.get_display_name()}",
                 callback_data=f"dungeon_use_potion_{potion.item_name}_{potion.level}",
                 style="success"
             )
