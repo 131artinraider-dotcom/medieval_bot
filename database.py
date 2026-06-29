@@ -1142,10 +1142,12 @@ async def get_leaderboard_global(stat_type: str, limit: int = 10, offset: int = 
         """
     elif stat_type == "power":
         query = """
-            SELECT user_id, character_name, class, level, gold, atk
-            FROM users 
-            WHERE is_registered = TRUE 
-            ORDER BY atk DESC, level DESC 
+            SELECT u.user_id, u.character_name, u.class, u.level, u.gold,
+                   u.atk + COALESCE(i.atk_bonus, 0) AS atk
+            FROM users u
+            LEFT JOIN inventory i ON i.user_id = u.user_id AND i.item_type = 'weapon' AND i.equipped = TRUE
+            WHERE u.is_registered = TRUE 
+            ORDER BY (u.atk + COALESCE(i.atk_bonus, 0)) DESC, u.level DESC 
             LIMIT $1 OFFSET $2
         """
     else:
@@ -1179,11 +1181,13 @@ async def get_leaderboard_group(chat_id: int, stat_type: str, limit: int = 10, o
         """
     elif stat_type == "power":
         query = """
-            SELECT u.user_id, u.character_name, u.class, u.level, u.gold, u.atk
+            SELECT u.user_id, u.character_name, u.class, u.level, u.gold,
+                   u.atk + COALESCE(i.atk_bonus, 0) AS atk
             FROM users u
             INNER JOIN group_members gm ON u.user_id = gm.user_id
+            LEFT JOIN inventory i ON i.user_id = u.user_id AND i.item_type = 'weapon' AND i.equipped = TRUE
             WHERE u.is_registered = TRUE AND gm.chat_id = $1
-            ORDER BY u.atk DESC, u.level DESC 
+            ORDER BY (u.atk + COALESCE(i.atk_bonus, 0)) DESC, u.level DESC 
             LIMIT $2 OFFSET $3
         """
     else:
@@ -1212,8 +1216,15 @@ async def get_user_global_rank(user_id: int, stat_type: str) -> int:
     elif stat_type == "power":
         rank = await conn.fetchval("""
             SELECT COUNT(*) + 1 
-            FROM users 
-            WHERE is_registered = TRUE AND atk > (SELECT atk FROM users WHERE user_id = $1)
+            FROM users u
+            LEFT JOIN inventory i ON i.user_id = u.user_id AND i.item_type = 'weapon' AND i.equipped = TRUE
+            WHERE u.is_registered = TRUE 
+              AND (u.atk + COALESCE(i.atk_bonus, 0)) > (
+                SELECT u2.atk + COALESCE(i2.atk_bonus, 0)
+                FROM users u2
+                LEFT JOIN inventory i2 ON i2.user_id = u2.user_id AND i2.item_type = 'weapon' AND i2.equipped = TRUE
+                WHERE u2.user_id = $1
+              )
         """, user_id)
     else:
         await conn.close()
@@ -1248,9 +1259,15 @@ async def get_user_group_rank(user_id: int, chat_id: int, stat_type: str) -> int
             SELECT COUNT(*) + 1 
             FROM users u
             INNER JOIN group_members gm ON u.user_id = gm.user_id
+            LEFT JOIN inventory i ON i.user_id = u.user_id AND i.item_type = 'weapon' AND i.equipped = TRUE
             WHERE u.is_registered = TRUE 
                 AND gm.chat_id = $1 
-                AND u.atk > (SELECT atk FROM users WHERE user_id = $2)
+                AND (u.atk + COALESCE(i.atk_bonus, 0)) > (
+                    SELECT u2.atk + COALESCE(i2.atk_bonus, 0)
+                    FROM users u2
+                    LEFT JOIN inventory i2 ON i2.user_id = u2.user_id AND i2.item_type = 'weapon' AND i2.equipped = TRUE
+                    WHERE u2.user_id = $2
+                )
         """, chat_id, user_id)
     else:
         await conn.close()
