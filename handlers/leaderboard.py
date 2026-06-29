@@ -44,10 +44,12 @@ async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     _msg = await update.message.reply_text(
-        "🏆 **سالن مشاهیر**\n\n"
-        "دسته و نوع نمایش رو انتخاب کن:\n\n"
-        "🌍 گلوبال = همه بازیکنان\n"
-        "👥 گروهی = فقط اعضای این گروه",
+        "🏆 **سالن مشاهیر**\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "🌍 گلوبال ← همه بازیکنان\n"
+        "👥 گروهی ← فقط اعضای این گروه\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "دسته و نوع رو انتخاب کن:",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
@@ -63,7 +65,11 @@ async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE, s
     limit = 10
     offset = page * limit
 
-    stat_titles = {"gold": "💰 ثروتمندترین‌ها", "level": "⭐ قوی‌ترین‌ها", "power": "⚔️ قدرتمندترین‌ها"}
+    stat_titles = {
+        "gold":  "💰 ثروتمندترین‌ها",
+        "level": "⭐ قوی‌ترین‌ها",
+        "power": "⚔️ قدرتمندترین‌ها"
+    }
     mode_names = {"global": "🌍 گلوبال", "group": "👥 گروهی"}
 
     if mode == "global":
@@ -73,51 +79,64 @@ async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE, s
         users = await get_leaderboard_group(chat_id, stat_type, limit, offset)
         total_users = await get_total_users_group(chat_id)
 
-    title = f"{stat_titles.get(stat_type, '🏆 رنکینگ')} | {mode_names.get(mode, '')}"
-    msg = f"{title}\n" + "─" * 28 + "\n"
+    total_pages = max(1, (total_users + limit - 1) // limit)
+
+    title = stat_titles.get(stat_type, '🏆 رنکینگ')
+    mode_txt = mode_names.get(mode, '')
+
+    msg = (
+        f"🏆 **سالن مشاهیر**\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{title} | {mode_txt}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+    )
 
     if not users:
-        msg += "\n😔 کسی پیدا نشد!\n"
+        msg += "😔 کسی پیدا نشد!\n"
         if mode == "group":
-            msg += "💡 اعضا باید یک‌بار /leaderboard بزنن تا ثبت بشن."
+            msg += "💡 اعضا باید یک‌بار /leaderboard بزنن تا ثبت بشن.\n"
     else:
         for i, user in enumerate(users):
-            rank = offset + i + 1
-            medal = MEDALS[i] if i < len(MEDALS) else f"{rank}."
+            medal = MEDALS[i] if i < len(MEDALS) else f"{offset + i + 1}."
             cls = CLASS_EMOJIS.get(user['class'], "⚔️")
             name = user['character_name']
 
             if stat_type == "gold":
-                val = f"{user['gold']:,}🪙"
+                val = f"{user['gold']:,} 🪙"
             elif stat_type == "level":
                 val = f"Lv.{user['level']}"
             else:
-                val = f"{user['atk']}⚔️"
+                val = f"{user['atk']} ⚔️"
 
             msg += f"{medal} {cls} `{name:<12}` {val}\n"
 
-    total_pages = max(1, (total_users + limit - 1) // limit)
-    msg += f"\n📄 صفحه {page + 1}/{total_pages} | {total_users} بازیکن"
+    msg += (
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📄 صفحه {page + 1} از {total_pages} | 👤 {total_users} بازیکن"
+    )
 
     keyboard = []
     nav = []
     if page > 0:
-        nav.append(InlineKeyboardButton("◀️", callback_data=f"lb_page_{mode}_{stat_type}_{page - 1}", style="primary"))
+        nav.append(InlineKeyboardButton("◀️ قبلی", callback_data=f"lb_page_{mode}_{stat_type}_{page - 1}", style="primary"))
     if page < total_pages - 1:
-        nav.append(InlineKeyboardButton("▶️", callback_data=f"lb_page_{mode}_{stat_type}_{page + 1}", style="primary"))
+        nav.append(InlineKeyboardButton("بعدی ▶️", callback_data=f"lb_page_{mode}_{stat_type}_{page + 1}", style="primary"))
     if nav:
         keyboard.append(nav)
 
     keyboard.append([
-        InlineKeyboardButton("💰", callback_data=f"lb_page_{mode}_gold_0", style="success"),
-        InlineKeyboardButton("⭐", callback_data=f"lb_page_{mode}_level_0", style="primary"),
-        InlineKeyboardButton("⚔️", callback_data=f"lb_page_{mode}_power_0", style="primary"),
+        InlineKeyboardButton("💰 سکه", callback_data=f"lb_page_{mode}_gold_0", style="success"),
+        InlineKeyboardButton("⭐ لول", callback_data=f"lb_page_{mode}_level_0", style="primary"),
+        InlineKeyboardButton("⚔️ قدرت", callback_data=f"lb_page_{mode}_power_0", style="primary"),
     ])
     keyboard.append([
         InlineKeyboardButton("🌍 گلوبال", callback_data="lb_type_global", style="primary"),
         InlineKeyboardButton("👥 گروهی", callback_data="lb_type_group", style="primary"),
     ])
-    keyboard.append([InlineKeyboardButton("🔙 برگشت", callback_data="lb_back", style="primary")])
+    keyboard.append([
+        InlineKeyboardButton("📊 رتبه من", callback_data="lb_my_rank", style="success"),
+        InlineKeyboardButton("🔙 برگشت", callback_data="lb_back", style="primary"),
+    ])
 
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
@@ -139,16 +158,17 @@ async def my_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
     rl = await get_user_global_rank(user_id, "level")
     rp = await get_user_global_rank(user_id, "power")
     total_g = await get_total_users_global()
-
     cls = CLASS_EMOJIS.get(player.class_key, "⚔️")
+
     msg = (
-        f"📊 **رتبه شخصی**\n\n"
+        f"📊 **رتبه شخصی**\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"{cls} **{player.character_name}** | Lv.{player.stats.level}\n"
-        f"─────────────────\n"
-        f"🌍 **گلوبال** (از {total_g} نفر)\n"
-        f"  💰 سکه: #{rg}\n"
-        f"  ⭐ لول: #{rl}\n"
-        f"  ⚔️ قدرت: #{rp}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🌍 **گلوبال** — از {total_g} نفر\n"
+        f"  💰 سکه:   #{rg}\n"
+        f"  ⭐ لول:    #{rl}\n"
+        f"  ⚔️ قدرت:  #{rp}\n"
     )
 
     if update.effective_chat.type in ["group", "supergroup"]:
@@ -157,11 +177,14 @@ async def my_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rgp = await get_user_group_rank(user_id, chat_id, "power")
         total_gr = await get_total_users_group(chat_id)
         msg += (
-            f"\n👥 **گروهی** (از {total_gr} نفر)\n"
-            f"  💰 سکه: #{rgg}\n"
-            f"  ⭐ لول: #{rgl}\n"
-            f"  ⚔️ قدرت: #{rgp}\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"👥 **گروهی** — از {total_gr} نفر\n"
+            f"  💰 سکه:   #{rgg}\n"
+            f"  ⭐ لول:    #{rgl}\n"
+            f"  ⚔️ قدرت:  #{rgp}\n"
         )
+
+    msg += "━━━━━━━━━━━━━━━━━━━━━"
 
     keyboard = [[InlineKeyboardButton("🔙 برگشت", callback_data="lb_back", style="primary")]]
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
@@ -191,10 +214,12 @@ async def lb_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     await query.edit_message_text(
-        "🏆 **سالن مشاهیر**\n\n"
-        "دسته و نوع نمایش رو انتخاب کن:\n\n"
-        "🌍 گلوبال = همه بازیکنان\n"
-        "👥 گروهی = فقط اعضای این گروه",
+        "🏆 **سالن مشاهیر**\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "🌍 گلوبال ← همه بازیکنان\n"
+        "👥 گروهی ← فقط اعضای این گروه\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "دسته و نوع رو انتخاب کن:",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
