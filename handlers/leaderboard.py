@@ -108,7 +108,9 @@ async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE, s
             else:
                 val = f"{user['atk']} ⚔️"
 
-            msg += f"{medal} {cls} `{name:<12}` {val}\n"
+            msg += f"┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+            msg += f"{medal} {cls} {name}\n"
+            msg += f"    └ {val}\n"
 
     msg += (
         f"━━━━━━━━━━━━━━━━━━━━━\n"
