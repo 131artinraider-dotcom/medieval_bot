@@ -1144,15 +1144,17 @@ async def get_leaderboard_global(stat_type: str, limit: int = 10, offset: int = 
         query = """
             SELECT u.user_id, u.character_name, u.class, u.level, u.gold,
                    u.atk + COALESCE((
-                       SELECT atk_bonus FROM inventory 
-                       WHERE user_id = u.user_id AND item_type = 'weapon' AND equipped = TRUE 
+                       SELECT s.atk_bonus FROM inventory inv
+                       JOIN shop_items s ON inv.item_name = s.item_name
+                       WHERE inv.user_id = u.user_id AND inv.item_type = 'weapon' AND inv.equipped = TRUE
                        LIMIT 1
                    ), 0) AS atk
             FROM users u
             WHERE u.is_registered = TRUE 
             ORDER BY (u.atk + COALESCE((
-                SELECT atk_bonus FROM inventory 
-                WHERE user_id = u.user_id AND item_type = 'weapon' AND equipped = TRUE 
+                SELECT s.atk_bonus FROM inventory inv
+                JOIN shop_items s ON inv.item_name = s.item_name
+                WHERE inv.user_id = u.user_id AND inv.item_type = 'weapon' AND inv.equipped = TRUE
                 LIMIT 1
             ), 0)) DESC, u.level DESC 
             LIMIT $1 OFFSET $2
@@ -1190,16 +1192,18 @@ async def get_leaderboard_group(chat_id: int, stat_type: str, limit: int = 10, o
         query = """
             SELECT u.user_id, u.character_name, u.class, u.level, u.gold,
                    u.atk + COALESCE((
-                       SELECT atk_bonus FROM inventory 
-                       WHERE user_id = u.user_id AND item_type = 'weapon' AND equipped = TRUE 
+                       SELECT s.atk_bonus FROM inventory inv
+                       JOIN shop_items s ON inv.item_name = s.item_name
+                       WHERE inv.user_id = u.user_id AND inv.item_type = 'weapon' AND inv.equipped = TRUE
                        LIMIT 1
                    ), 0) AS atk
             FROM users u
             INNER JOIN group_members gm ON u.user_id = gm.user_id
             WHERE u.is_registered = TRUE AND gm.chat_id = $1
             ORDER BY (u.atk + COALESCE((
-                SELECT atk_bonus FROM inventory 
-                WHERE user_id = u.user_id AND item_type = 'weapon' AND equipped = TRUE 
+                SELECT s.atk_bonus FROM inventory inv
+                JOIN shop_items s ON inv.item_name = s.item_name
+                WHERE inv.user_id = u.user_id AND inv.item_type = 'weapon' AND inv.equipped = TRUE
                 LIMIT 1
             ), 0)) DESC, u.level DESC 
             LIMIT $2 OFFSET $3
@@ -1233,12 +1237,14 @@ async def get_user_global_rank(user_id: int, stat_type: str) -> int:
             FROM users u
             WHERE u.is_registered = TRUE 
               AND (u.atk + COALESCE((
-                  SELECT atk_bonus FROM inventory 
-                  WHERE user_id = u.user_id AND item_type = 'weapon' AND equipped = TRUE LIMIT 1
+                  SELECT s.atk_bonus FROM inventory inv
+                  JOIN shop_items s ON inv.item_name = s.item_name
+                  WHERE inv.user_id = u.user_id AND inv.item_type = 'weapon' AND inv.equipped = TRUE LIMIT 1
               ), 0)) > (
                 SELECT u2.atk + COALESCE((
-                    SELECT atk_bonus FROM inventory 
-                    WHERE user_id = u2.user_id AND item_type = 'weapon' AND equipped = TRUE LIMIT 1
+                    SELECT s2.atk_bonus FROM inventory inv2
+                    JOIN shop_items s2 ON inv2.item_name = s2.item_name
+                    WHERE inv2.user_id = u2.user_id AND inv2.item_type = 'weapon' AND inv2.equipped = TRUE LIMIT 1
                 ), 0)
                 FROM users u2 WHERE u2.user_id = $1
               )
@@ -1279,12 +1285,14 @@ async def get_user_group_rank(user_id: int, chat_id: int, stat_type: str) -> int
             WHERE u.is_registered = TRUE 
                 AND gm.chat_id = $1 
                 AND (u.atk + COALESCE((
-                    SELECT atk_bonus FROM inventory 
-                    WHERE user_id = u.user_id AND item_type = 'weapon' AND equipped = TRUE LIMIT 1
+                    SELECT s.atk_bonus FROM inventory inv
+                    JOIN shop_items s ON inv.item_name = s.item_name
+                    WHERE inv.user_id = u.user_id AND inv.item_type = 'weapon' AND inv.equipped = TRUE LIMIT 1
                 ), 0)) > (
                     SELECT u2.atk + COALESCE((
-                        SELECT atk_bonus FROM inventory 
-                        WHERE user_id = u2.user_id AND item_type = 'weapon' AND equipped = TRUE LIMIT 1
+                        SELECT s2.atk_bonus FROM inventory inv2
+                        JOIN shop_items s2 ON inv2.item_name = s2.item_name
+                        WHERE inv2.user_id = u2.user_id AND inv2.item_type = 'weapon' AND inv2.equipped = TRUE LIMIT 1
                     ), 0)
                     FROM users u2 WHERE u2.user_id = $2
                 )
