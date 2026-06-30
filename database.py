@@ -153,6 +153,29 @@ async def init_db():
         CREATE INDEX IF NOT EXISTS idx_duel_requests_chat_id ON duel_requests(chat_id)
     """)
     
+    # ===== جدول chat_messages (لاگ پیام‌های گروه) =====
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id SERIAL PRIMARY KEY,
+            chat_id BIGINT NOT NULL,
+            chat_title VARCHAR(255),
+            user_id BIGINT NOT NULL,
+            username VARCHAR(100),
+            full_name VARCHAR(200),
+            message_text TEXT,
+            message_id INTEGER,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_id ON chat_messages(chat_id, created_at DESC)
+    """)
+
+    await conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_chat_messages_text ON chat_messages USING gin (to_tsvector('simple', message_text))
+    """)
+
     # ===== جدول panels (برای قفل پنل) =====
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS panels (
@@ -1759,3 +1782,88 @@ async def get_duel_creator(chat_id: int):
     )
     await conn.close()
     return creator
+
+
+# ========================================
+# 15. CHAT MESSAGE LOGGING FUNCTIONS
+# ========================================
+PAGE_SIZE = 10  # تعداد پیام در هر صفحه
+
+
+async def save_chat_message(chat_id: int, chat_title: str, user_id: int,
+                             username: str, full_name: str,
+                             message_text: str, message_id: int):
+    """ذخیره یک پیام گروه در دیتابیس"""
+    conn = await get_db()
+    await conn.execute("""
+        INSERT INTO chat_messages
+            (chat_id, chat_title, user_id, username, full_name, message_text, message_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+    """, chat_id, chat_title, user_id, username, full_name, message_text, message_id)
+    await conn.close()
+
+
+async def get_chat_messages_page(chat_id: int, page: int = 0):
+    """دریافت یک صفحه از پیام‌های یک گروه (جدیدترین اول)"""
+    conn = await get_db()
+    offset = page * PAGE_SIZE
+
+    rows = await conn.fetch("""
+        SELECT * FROM chat_messages
+        WHERE chat_id = $1
+        ORDER BY created_at DESC
+        LIMIT $2 OFFSET $3
+    """, chat_id, PAGE_SIZE, offset)
+
+    total = await conn.fetchval(
+        "SELECT COUNT(*) FROM chat_messages WHERE chat_id = $1",
+        chat_id
+    )
+    await conn.close()
+    return rows, total
+
+
+async def search_chat_messages(chat_id: int, keyword: str, page: int = 0):
+    """جستجوی پیام‌ها بر اساس یک کلمه (در یک گروه خاص)"""
+    conn = await get_db()
+    offset = page * PAGE_SIZE
+    pattern = f"%{keyword}%"
+
+    rows = await conn.fetch("""
+        SELECT * FROM chat_messages
+        WHERE chat_id = $1 AND message_text ILIKE $2
+        ORDER BY created_at DESC
+        LIMIT $3 OFFSET $4
+    """, chat_id, pattern, PAGE_SIZE, offset)
+
+    total = await conn.fetchval("""
+        SELECT COUNT(*) FROM chat_messages
+        WHERE chat_id = $1 AND message_text ILIKE $2
+    """, chat_id, pattern)
+    await conn.close()
+    return rows, total
+
+
+async def get_logged_chats():
+    """لیست چت‌هایی که پیام ازشون ذخیره شده (برای ادمین در پی‌وی)"""
+    conn = await get_db()
+    rows = await conn.fetch("""
+        SELECT chat_id, chat_title, COUNT(*) AS cnt, MAX(created_at) AS last_msg
+        FROM chat_messages
+        GROUP BY chat_id, chat_title
+        ORDER BY last_msg DESC
+    """)
+    await conn.close()
+    return rows
+
+
+async def delete_old_chat_messages(days: int = 30):
+    """حذف پیام‌های قدیمی‌تر از N روز (اختیاری، برای کنترل حجم دیتابیس)"""
+    conn = await get_db()
+    cutoff = datetime.now() - timedelta(days=days)
+    result = await conn.execute(
+        "DELETE FROM chat_messages WHERE created_at < $1",
+        cutoff
+    )
+    await conn.close()
+    return result

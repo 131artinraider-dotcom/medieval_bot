@@ -32,6 +32,7 @@ from handlers.duel import duel_accept, duel_close
 from handlers.daily import daily_claim, daily_claim_all, daily_back, daily_close
 from handlers.help import help_close
 from handlers.panel_utils import check_panel_ownership, clear_panel_owner
+from handlers.message_logs import logs_callback
 
 # ========================================
 # کالبک اصلی
@@ -56,6 +57,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # دانجن قفل شده - همه میتونن ببینن پیام خطا رو
     if data == "dungeon_level_locked":
         await query.answer("🔒 لول شما برای این ماموریت کافی نیست!", show_alert=True)
+        return
+
+    # لاگ پیام‌های گروه (صفحه‌بندی و بستن) - فقط ادمین
+    if data.startswith("logs|") or data == "logs_close":
+        await logs_callback(update, context)
         return
 
     if data == "dungeon_locked":

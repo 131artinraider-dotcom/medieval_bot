@@ -25,6 +25,8 @@ from handlers.admin import (
     admin_close_all_panels,
     admin_reset_dungeon
 )
+from handlers.logger import log_group_message
+from handlers.message_logs import logs_command, chats_command
 
 # ========================================
 # تنظیمات لاگ - فقط WARNING و بالاتر
@@ -63,6 +65,14 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     if not update.message:
         return
     text = update.message.text.strip()
+
+    # ===== ذخیره همه پیام‌های گروه (قبل از هر پردازشی) =====
+    await log_group_message(update, context)
+
+    if text.startswith("/logs"):
+        await logs_command(update, context); return
+    if text.startswith("/chats"):
+        await chats_command(update, context); return
 
     if text.startswith("/addgold"):
         await admin_add_gold(update, context); return
