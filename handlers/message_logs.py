@@ -10,6 +10,8 @@
 دکمه‌های ⬅️ قبلی / بعدی➡️ برای صفحه‌بندی.
 """
 from datetime import timedelta
+import time
+import uuid
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from handlers.admin import is_admin
@@ -17,6 +19,35 @@ from database import get_chat_messages_page, search_chat_messages, get_logged_ch
 
 # تهران از UTC حدوداً ۳:۳۰ جلوتره؛ برای نمایش ساده افست رو هاردکد می‌کنیم
 TZ_OFFSET = timedelta(hours=3, minutes=30)
+
+# ذخیره موقت سشن‌های فیلتر/مرور (چون callback_data تلگرام محدود به ۶۴ بایته
+# و فیلتر کلمه می‌تونه طولانی باشه، به‌جای گذاشتن خود کلمه تو دکمه، فقط یه
+# شناسه کوتاه می‌فرستیم و جزئیات رو این‌جا نگه می‌داریم)
+_log_sessions = {}  # session_id -> {"chat_id": int, "keyword": str|None, "ts": float}
+_SESSION_TTL = 3600 * 6  # ۶ ساعت
+
+
+def _make_session(chat_id: int, keyword: str = None) -> str:
+    _cleanup_sessions()
+    sid = uuid.uuid4().hex[:10]
+    _log_sessions[sid] = {"chat_id": chat_id, "keyword": keyword, "ts": time.monotonic()}
+    return sid
+
+
+def _get_session(sid: str):
+    s = _log_sessions.get(sid)
+    if s:
+        s["ts"] = time.monotonic()  # تمدید عمر سشن با هر استفاده
+    return s
+
+
+def _cleanup_sessions():
+    if len(_log_sessions) < 200:
+        return
+    cutoff = time.monotonic() - _SESSION_TTL
+    for sid in list(_log_sessions.keys()):
+        if _log_sessions[sid]["ts"] < cutoff:
+            del _log_sessions[sid]
 
 
 def _fmt_time(dt):
@@ -54,11 +85,12 @@ def _build_text(rows, total, page: int, chat_title: str, keyword: str = None):
 
 def _build_keyboard(chat_id: int, page: int, total: int, keyword: str = None):
     total_pages = max(1, -(-total // PAGE_SIZE))
-    kw = keyword or ""
 
-    # encode: logs|<chat_id>|<page>|<keyword>
+    sid = _make_session(chat_id, keyword)
+
+    # encode: logs|<session_id>|<page>  (همیشه کوتاه و زیر محدودیت ۶۴ بایت)
     def cb(p):
-        return f"logs|{chat_id}|{p}|{kw}"
+        return f"logs|{sid}|{p}"
 
     buttons = []
     nav_row = []
@@ -145,11 +177,21 @@ async def logs_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
         return
 
-    # logs|<chat_id>|<page>|<keyword>
-    _, chat_id_str, page_str, keyword = query.data.split("|", 3)
-    chat_id = int(chat_id_str)
-    page = int(page_str)
-    keyword = keyword or None
+    # logs|<session_id>|<page>
+    try:
+        _, sid, page_str = query.data.split("|", 2)
+        page = int(page_str)
+    except ValueError:
+        await query.answer("⚠️ این دکمه منقضی شده، دوباره /logs رو بزن.", show_alert=True)
+        return
+
+    session = _get_session(sid)
+    if not session:
+        await query.answer("⚠️ این دکمه منقضی شده، دوباره /logs رو بزن.", show_alert=True)
+        return
+
+    chat_id = session["chat_id"]
+    keyword = session["keyword"]
 
     if keyword:
         rows, total = await search_chat_messages(chat_id, keyword, page)
