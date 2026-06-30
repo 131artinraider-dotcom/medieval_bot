@@ -1,6 +1,9 @@
 # handlers/callbacks.py
 
+import asyncio
+import time
 from telegram import Update
+from telegram.error import RetryAfter
 from telegram.ext import ContextTypes
 from handlers.start import select_class_callback
 from handlers.inventory import (
@@ -35,6 +38,14 @@ from handlers.panel_utils import check_panel_ownership, clear_panel_owner
 from handlers.message_logs import logs_callback
 
 # ========================================
+# تنظیمات ضد فلود
+# ========================================
+CLICK_COOLDOWN = 0.6          # حداقل فاصله مجاز بین دو کلیک هر کاربر (ثانیه)
+MAX_RETRY_ATTEMPTS = 3         # حداکثر تلاش مجدد در صورت Flood control
+MAX_RETRY_WAIT = 30            # حداکثر زمان صبر برای هر تلاش (ثانیه)
+_last_click_time = {}          # user_id -> timestamp آخرین کلیک
+
+# ========================================
 # کالبک اصلی
 # ========================================
 
@@ -44,6 +55,53 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
 
     print(f"🔍 کالبک دریافت شد: {data}")
+
+    # ==========================================
+    # 0. محدودیت سرعت کلیک (ضد اسپم/فلود) - فقط روی همون کاربر
+    # ==========================================
+    user_id = query.from_user.id
+    now = time.monotonic()
+    last_click = _last_click_time.get(user_id, 0)
+
+    if now - last_click < CLICK_COOLDOWN:
+        # کلیک خیلی سریع - فقط یه جواب خفیف بده و کاری نکن
+        try:
+            await query.answer()
+        except Exception:
+            pass
+        return
+
+    _last_click_time[user_id] = now
+
+    # پاکسازی دوره‌ای دیکشنری (هر ~۵۰۰ کلیک، رکوردهای قدیمی‌تر از ۱ ساعت حذف میشن)
+    if len(_last_click_time) > 500:
+        cutoff = now - 3600
+        for uid in list(_last_click_time.keys()):
+            if _last_click_time[uid] < cutoff:
+                del _last_click_time[uid]
+
+    # اجرای منطق اصلی با محافظت در برابر Flood control
+    await _dispatch_with_retry(update, context, data)
+
+
+async def _dispatch_with_retry(update: Update, context: ContextTypes.DEFAULT_TYPE, data: str, attempt: int = 0):
+    """اجرای دیسپچر اصلی؛ اگه تلگرام Flood control داد، خودکار صبر و تلاش مجدد می‌کنه"""
+    try:
+        await _dispatch(update, context, data)
+    except RetryAfter as e:
+        if attempt >= MAX_RETRY_ATTEMPTS:
+            print(f"⚠️ Flood control: تلاش‌های مجدد تمام شد برای {data}")
+            return
+        wait_time = min(e.retry_after + 0.5, MAX_RETRY_WAIT)
+        print(f"⏳ Flood control: صبر {wait_time:.1f} ثانیه و تلاش مجدد ({attempt + 1}/{MAX_RETRY_ATTEMPTS})")
+        await asyncio.sleep(wait_time)
+        await _dispatch_with_retry(update, context, data, attempt + 1)
+    except Exception as e:
+        print(f"⚠️ خطا در پردازش کالبک {data}: {e}")
+
+
+async def _dispatch(update: Update, context: ContextTypes.DEFAULT_TYPE, data: str):
+    query = update.callback_query
 
     # ==========================================
     # 1. دکمه‌هایی که هیچ‌وقت قفل ندارن
