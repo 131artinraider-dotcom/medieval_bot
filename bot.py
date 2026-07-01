@@ -50,6 +50,7 @@ async def post_init(application):
 async def cleanup_expired_panels(context: ContextTypes.DEFAULT_TYPE):
     """پاک کردن و دیلیت پنل‌های بیش از ۱۰ دقیقه"""
     import time
+    from database import end_dungeon
     now = time.time()
     expired = [
         (k, v) for k, v in list(context.bot_data.items())
@@ -63,6 +64,14 @@ async def cleanup_expired_panels(context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
         except Exception:
             pass
+        # اگه پنل دانجن بود، دانجن رو از دیتابیس پاک کن
+        if v.get("type") == "dungeon":
+            try:
+                user_id = v.get("uid")
+                if user_id:
+                    await end_dungeon(user_id)
+            except Exception:
+                pass
         context.bot_data.pop(k, None)
 
 # ========================================
