@@ -48,14 +48,21 @@ async def post_init(application):
 # پاک‌سازی پنل‌های منقضی (هر ۱۰ دقیقه)
 # ========================================
 async def cleanup_expired_panels(context: ContextTypes.DEFAULT_TYPE):
-    """پاک کردن پنل‌های بیش از ۱۰ دقیقه از bot_data"""
+    """پاک کردن و دیلیت پنل‌های بیش از ۱۰ دقیقه"""
     import time
     now = time.time()
     expired = [
-        k for k, v in list(context.bot_data.items())
+        (k, v) for k, v in list(context.bot_data.items())
         if k.startswith("panel_") and isinstance(v, dict) and now - v.get("ts", now) > 600
     ]
-    for k in expired:
+    for k, v in expired:
+        try:
+            chat_id = v.get("chat_id")
+            message_id = int(k.replace("panel_", ""))
+            if chat_id:
+                await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
+        except Exception:
+            pass
         context.bot_data.pop(k, None)
 
 # ========================================

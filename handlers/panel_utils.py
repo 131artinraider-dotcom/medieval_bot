@@ -28,9 +28,12 @@ async def check_panel_ownership(update: Update, context: ContextTypes.DEFAULT_TY
     # چک timeout 10 دقیقه
     if time.time() - data.get("ts", 0) > 600:
         context.bot_data.pop(key, None)
-        await query.answer("⏰ این پنل منقضی شده! دوباره کامند بزن.", show_alert=True)
         try:
-            await query.delete_message()
+            await query.message.delete()
+        except Exception:
+            pass
+        try:
+            await query.answer()
         except Exception:
             pass
         return False
