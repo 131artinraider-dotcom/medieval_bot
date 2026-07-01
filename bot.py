@@ -71,10 +71,11 @@ async def cleanup_expired_panels(context: ContextTypes.DEFAULT_TYPE):
                 if user_id:
                     from database import get_db
                     conn = await get_db()
-                    await conn.execute("DELETE FROM dungeons WHERE user_id = $1 AND is_active = TRUE", user_id)
+                    await conn.execute("DELETE FROM dungeons WHERE user_id = $1", user_id)
                     await conn.close()
-            except Exception:
-                pass
+                    print(f"[CLEANUP] Deleted dungeon for user {user_id}")
+            except Exception as e:
+                print(f"[CLEANUP ERROR] {e}")
         context.bot_data.pop(k, None)
 
 # ========================================

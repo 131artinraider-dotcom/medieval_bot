@@ -222,6 +222,11 @@ async def _dispatch(update: Update, context: ContextTypes.DEFAULT_TYPE, data: st
         return
 
     if data.startswith("dungeon_battle_start_"):
+        # آپدیت panel type به dungeon_active چون بازی شروع شد
+        msg_id = update.callback_query.message.message_id
+        key = f"panel_{msg_id}"
+        if key in context.bot_data:
+            context.bot_data[key]["type"] = "dungeon_active"
         await dungeon_battle_start(update, context)
         return
 
