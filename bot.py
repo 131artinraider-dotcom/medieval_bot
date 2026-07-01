@@ -53,7 +53,7 @@ async def cleanup_expired_panels(context: ContextTypes.DEFAULT_TYPE):
     now = time.time()
     expired = [
         (k, v) for k, v in list(context.bot_data.items())
-        if k.startswith("panel_") and isinstance(v, dict) and now - v.get("ts", now) > 600
+        if k.startswith("panel_") and isinstance(v, dict) and now - v.get("ts", now) > 5
     ]
     for k, v in expired:
         try:
@@ -213,7 +213,7 @@ def main():
     app.add_error_handler(error_handler)
 
     # پاک‌سازی پنل‌های منقضی هر ۱۰ دقیقه
-    app.job_queue.run_repeating(cleanup_expired_panels, interval=600, first=600)
+    app.job_queue.run_repeating(cleanup_expired_panels, interval=5, first=5)
 
     print("⚔️ بات قرون وسطایی روشن شد! 🏰")
     app.run_polling()
