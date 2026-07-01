@@ -26,7 +26,7 @@ async def check_panel_ownership(update: Update, context: ContextTypes.DEFAULT_TY
         return True  # پنل قدیمی - اجازه بده
 
     # چک timeout 10 دقیقه
-    if time.time() - data.get("ts", 0) > 5:
+    if time.time() - data.get("ts", 0) > 600:
         context.bot_data.pop(key, None)
         try:
             await query.message.delete()
