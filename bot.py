@@ -64,12 +64,15 @@ async def cleanup_expired_panels(context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
         except Exception:
             pass
-        # اگه پنل دانجن بود، دانجن رو از دیتابیس پاک کن
-        if v.get("type") == "dungeon":
+        # اگه پنل نبرد دانجن بود، دانجن رو کاملاً از دیتابیس DELETE کن
+        if v.get("type") == "dungeon_active":
             try:
                 user_id = v.get("uid")
                 if user_id:
-                    await end_dungeon(user_id)
+                    from database import get_db
+                    conn = await get_db()
+                    await conn.execute("DELETE FROM dungeons WHERE user_id = $1 AND is_active = TRUE", user_id)
+                    await conn.close()
             except Exception:
                 pass
         context.bot_data.pop(k, None)

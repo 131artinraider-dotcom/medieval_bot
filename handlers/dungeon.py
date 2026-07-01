@@ -106,7 +106,7 @@ async def dungeon(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     _msg = await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
     if _msg:
-        register_panel(_msg.message_id, update.effective_user.id, context, update.effective_chat.id, panel_type="dungeon")
+        register_panel(_msg.message_id, update.effective_user.id, context, update.effective_chat.id)
 
 # ==========================================
 # پنل شروع دانجن
@@ -326,7 +326,7 @@ async def dungeon_battle_round(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         _msg = await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
         if _msg:
-            register_panel(_msg.message_id, update.effective_user.id, context, update.effective_chat.id, panel_type="dungeon")
+            register_panel(_msg.message_id, update.effective_user.id, context, update.effective_chat.id, panel_type="dungeon_active")
 
 # ==========================================
 # حمله پلیر
