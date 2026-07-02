@@ -304,3 +304,45 @@ DUNGEONS = {
         ]
     }
 }
+
+# ===== استامینا کلاس‌ها =====
+CLASS_STAMINA = {
+    "warrior": 120,   # شوالیه - متوسط
+    "samurai": 130,   # سامورایی - بالا
+    "assassin": 150,  # اساسین - بالاترین
+    "paladin": 100,   # پالادین - کمترین
+}
+
+# ===== استامینای سلاح‌ها =====
+WEAPON_STAMINA = {
+    # تبرها - بیشترین مصرف
+    "axe": {"light": 35, "heavy": 65, "defend": 20},
+    # شمشیرها
+    "sword": {"light": 25, "heavy": 50, "defend": 15},
+    # کاتاناها
+    "katana": {"light": 20, "heavy": 40, "defend": 12},
+    # خنجرها - کمترین مصرف + دو ضربه سبک
+    "dagger": {"light": 12, "heavy": 30, "defend": 10, "double_light": True},
+}
+
+# ===== دسته سلاح بر اساس نام =====
+WEAPON_CATEGORIES = {
+    "شمشیر": "sword",
+    "کاتانا": "katana",
+    "خنجر": "dagger",
+    "تبر": "axe",
+}
+
+def get_weapon_category(weapon_name: str) -> str:
+    """دسته سلاح رو از اسمش پیدا کن"""
+    for prefix, cat in WEAPON_CATEGORIES.items():
+        if prefix in weapon_name:
+            return cat
+    return "sword"  # پیش‌فرض
+
+# ===== پاداش فایت =====
+FIGHT_GOLD_RATIO = 0.30       # ۳۰٪ طلای بازنده
+FIGHT_UPGRADE_RATIO = 0.35    # ۳۵٪ آپگرید پوینت بازنده
+FIGHT_SHIELD_MINUTES = 30     # شیلد بعد از باخت
+FIGHT_MAX_POTIONS = 5         # ماکسیمم پوشن در فایت
+FIGHT_REQUEST_TIMEOUT = 300   # ۵ دقیقه وقت برای قبول/رد

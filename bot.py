@@ -18,6 +18,8 @@ from handlers.daily import daily
 from handlers.help import help_command
 from handlers.keyword import handle_keyword
 from handlers.pay import pay
+from handlers.fight import fight_command
+
 from handlers.admin import (
     admin_panel, admin_add_gold, admin_remove_gold, admin_reset_player,
     admin_add_exp, admin_remove_exp, admin_add_upgrade, admin_remove_upgrade,
@@ -118,6 +120,8 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         await admin_rename_player(update, context); return
     if text == "/admin":
         await admin_panel(update, context); return
+    if text in ("/fight", "فایت") or text.startswith("/fight "):
+        await fight_command(update, context); return
     if text == "/closeallpanels":
         await admin_close_all_panels(update, context); return
 

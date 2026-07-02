@@ -1867,3 +1867,142 @@ async def delete_old_chat_messages(days: int = 30):
     )
     await conn.close()
     return result
+
+
+# ==========================================
+# توابع فایت
+# ==========================================
+
+async def create_fight_tables():
+    """ساخت جداول فایت اگه نیستن"""
+    conn = await get_db()
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS fights (
+            id SERIAL PRIMARY KEY,
+            attacker_id BIGINT NOT NULL,
+            defender_id BIGINT NOT NULL,
+            fight_type VARCHAR(20) DEFAULT 'pvp',
+            status VARCHAR(20) DEFAULT 'pending',
+            current_turn BIGINT,
+            attacker_hp INT DEFAULT 0,
+            defender_hp INT DEFAULT 0,
+            attacker_stamina INT DEFAULT 0,
+            defender_stamina INT DEFAULT 0,
+            attacker_potions INT DEFAULT 0,
+            defender_potions INT DEFAULT 0,
+            chat_id BIGINT,
+            message_id BIGINT,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS fight_shields (
+            user_id BIGINT PRIMARY KEY,
+            shield_until TIMESTAMP NOT NULL
+        )
+    """)
+    await conn.close()
+
+async def create_fight(attacker_id: int, defender_id: int, fight_type: str, chat_id: int,
+                       attacker_hp: int, defender_hp: int, attacker_stamina: int, defender_stamina: int) -> int:
+    conn = await get_db()
+    fight_id = await conn.fetchval("""
+        INSERT INTO fights (attacker_id, defender_id, fight_type, status, current_turn,
+                           attacker_hp, defender_hp, attacker_stamina, defender_stamina,
+                           attacker_potions, defender_potions, chat_id)
+        VALUES ($1, $2, $3, 'pending', $1, $4, $5, $6, $7, 0, 0, $8)
+        RETURNING id
+    """, attacker_id, defender_id, fight_type, attacker_hp, defender_hp,
+        attacker_stamina, defender_stamina, chat_id)
+    await conn.close()
+    return fight_id
+
+async def get_fight(fight_id: int):
+    conn = await get_db()
+    fight = await conn.fetchrow("SELECT * FROM fights WHERE id = $1", fight_id)
+    await conn.close()
+    return fight
+
+async def get_active_fight(user_id: int):
+    conn = await get_db()
+    fight = await conn.fetchrow("""
+        SELECT * FROM fights 
+        WHERE (attacker_id = $1 OR defender_id = $1) 
+          AND status IN ('pending', 'active')
+        ORDER BY created_at DESC LIMIT 1
+    """, user_id)
+    await conn.close()
+    return fight
+
+async def update_fight(fight_id: int, **kwargs):
+    conn = await get_db()
+    sets = ", ".join([f"{k} = ${i+2}" for i, k in enumerate(kwargs.keys())])
+    values = list(kwargs.values())
+    await conn.execute(
+        f"UPDATE fights SET {sets}, updated_at = NOW() WHERE id = $1",
+        fight_id, *values
+    )
+    await conn.close()
+
+async def end_fight(fight_id: int, status: str = 'finished'):
+    conn = await get_db()
+    await conn.execute("UPDATE fights SET status = $1, updated_at = NOW() WHERE id = $2", status, fight_id)
+    await conn.close()
+
+async def set_fight_shield(user_id: int, minutes: int):
+    from datetime import datetime, timedelta
+    conn = await get_db()
+    shield_until = datetime.now() + timedelta(minutes=minutes)
+    await conn.execute("""
+        INSERT INTO fight_shields (user_id, shield_until)
+        VALUES ($1, $2)
+        ON CONFLICT (user_id) DO UPDATE SET shield_until = $2
+    """, user_id, shield_until)
+    await conn.close()
+
+async def has_fight_shield(user_id: int) -> bool:
+    from datetime import datetime
+    conn = await get_db()
+    shield_until = await conn.fetchval(
+        "SELECT shield_until FROM fight_shields WHERE user_id = $1", user_id
+    )
+    await conn.close()
+    if not shield_until:
+        return False
+    return datetime.now() < shield_until
+
+async def get_shield_remaining(user_id: int) -> int:
+    """دقیقه‌های باقی‌مانده شیلد"""
+    from datetime import datetime
+    conn = await get_db()
+    shield_until = await conn.fetchval(
+        "SELECT shield_until FROM fight_shields WHERE user_id = $1", user_id
+    )
+    await conn.close()
+    if not shield_until:
+        return 0
+    remaining = (shield_until - datetime.now()).total_seconds()
+    return max(0, int(remaining // 60))
+
+async def get_upgrade_points(user_id: int) -> int:
+    conn = await get_db()
+    val = await conn.fetchval("SELECT upgrade_points FROM users WHERE user_id = $1", user_id)
+    await conn.close()
+    return val or 0
+
+async def remove_upgrade_points(user_id: int, amount: int):
+    conn = await get_db()
+    await conn.execute(
+        "UPDATE users SET upgrade_points = GREATEST(0, upgrade_points - $1) WHERE user_id = $2",
+        amount, user_id
+    )
+    await conn.close()
+
+async def add_upgrade_points(user_id: int, amount: int):
+    conn = await get_db()
+    await conn.execute(
+        "UPDATE users SET upgrade_points = upgrade_points + $1 WHERE user_id = $2",
+        amount, user_id
+    )
+    await conn.close()
