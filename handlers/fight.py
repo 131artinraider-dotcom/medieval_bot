@@ -6,7 +6,7 @@ from database import (
     create_fight, get_fight, update_fight, end_fight,
     set_fight_shield, has_fight_shield, get_shield_remaining,
     get_upgrade_points, remove_upgrade_points, add_upgrade_points,
-    update_user_gold, add_exp, update_user_hp, use_consumable,
+    add_exp, update_user_hp, use_consumable,
     get_inventory, create_fight_tables
 )
 from models import Player, Item
@@ -907,12 +907,8 @@ async def _give_rewards(context, winner_id: int, loser_id: int,
 
     # اعمال پاداش‌ها
     conn = await get_db()
-    await conn.execute(
-        "UPDATE users SET gold = gold + $1 WHERE user_id = $2", gold_prize, winner_id
-    )
-    await conn.execute(
-        "UPDATE users SET gold = GREATEST(0, gold - $1) WHERE user_id = $2", gold_prize, loser_id
-    )
+    await conn.execute("UPDATE users SET gold = gold + $1 WHERE user_id = $2", gold_prize, winner_id)
+    await conn.execute("UPDATE users SET gold = GREATEST(0, gold - $1) WHERE user_id = $2", gold_prize, loser_id)
     await conn.close()
 
     if upgrade_prize > 0:
